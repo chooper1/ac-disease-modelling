@@ -3,9 +3,6 @@
 
 library("ggplot2")
 
-#set working directory (change user name)
-setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Watmough-SLIAR-model/")
-
 source("R/SLIAR-SSA.R")
 
 
