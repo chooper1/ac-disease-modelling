@@ -1,9 +1,12 @@
 # Run GillespieSSA with the SLIAR model and compare with the solution from the ODE
 # 
 
+setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Watmough-SLIAR-model/")
+
 library("ggplot2")
 
 source("R/SLIAR-SSA.R")
+
 
 
 # read in parameter values based on various scenarios
