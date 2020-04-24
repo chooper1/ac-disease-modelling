@@ -14,7 +14,7 @@ paramset<-read.csv("params_Teismann.csv")
 
 
 #initial states
-S0<-c(S=800, E=0, B=0, A=20, I_p=20, I_m=20, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
+S0<-c(S=800, E=0, B=0, A=0, I_p=20, I_m=0, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
 
 #control reproduction number, when control measures are in place
 #Rc=with(paramset, ((beta*rho*c*(1-q))/(delta_I+alpha+gamma_I)+(beta*c*theta*(1-rho)*(1-q))/gamma_A)*S0[1])
@@ -22,7 +22,7 @@ S0<-c(S=800, E=0, B=0, A=20, I_p=20, I_m=20, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
 #Rc
 
 #choose parameter sets
-param=paramset[1, 2:15]
+param=paramset[1, 2:16]
 
 
 #final time for SSA
@@ -36,7 +36,7 @@ A=repsim(S0, rates, nu, param=param, tf=360, simName, runs=20)
 
 
 #plot E for every simulation
-sampleruns<-ggplot(A, aes(x=t, y=E))+geom_line(aes(color=run))
+sampleruns<-ggplot(A, aes(x=t, y=Q_m))+geom_line(aes(color=run))
 print(sampleruns)
 
 #plot L, I, A for one simulation
@@ -46,5 +46,5 @@ print(singlerun)
 
 res_ode<-ode(y=S0, times, func=rhs, param)
 
-plot(res_ode[,1], res_ode[,'I_m'], col='red')
+plot(res_ode[,1], res_ode[,'S'], col='red')
 
