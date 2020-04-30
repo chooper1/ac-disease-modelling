@@ -1,3 +1,5 @@
+#fits parameters r and p for Teismann's parametric model
+
 #load libraries
 library(deSolve)
 library(minpack.lm)
