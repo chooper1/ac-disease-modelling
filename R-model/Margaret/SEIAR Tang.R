@@ -46,7 +46,7 @@ rhs<-function(t, x, parms=NULL) {
 #control reproduction number
 
 Rc=function(param){
-  with(param, ((beta*rho*c*(1-q))/(delta_I+alpha+gamma_I)+(beta*c*theta*(1-rho)*(1-q))/gamma_A)*S0)
+  with(param, ((beta*rho*c*(1-q))/(delta_I+alpha+gamma_I)+(beta*c*theta*(1-rho)*(1-q))/gamma_A)*S0[1])
 }
 
 repsim=function(S0, rates, nu, param, tf, simName, runs, method=ssa.d()) {

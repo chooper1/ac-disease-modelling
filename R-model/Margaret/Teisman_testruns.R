@@ -14,16 +14,15 @@ paramset<-read.csv("params_Teismann.csv")
 
 
 #initial states
-S0<-c(S=800, E=0, B=0, A=0, I_p=20, I_m=0, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
-
-#control reproduction number, when control measures are in place
-#Rc=with(paramset, ((beta*rho*c*(1-q))/(delta_I+alpha+gamma_I)+(beta*c*theta*(1-rho)*(1-q))/gamma_A)*S0[1])
-
-#Rc
+S0<-c(S=1000, E=0, B=0, A=0, I_p=20, I_m=0, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
 
 #choose parameter sets
-param=paramset[1, 2:16]
+param=paramset[1, 2:17]
 
+#control reproduction number, when control measures are in place
+Rc=with(param, (mu_E/(mu_E+kappa))*((beta_p/(mu_1+kappa))+(phi*mu_1+beta_m)/((mu_1+kappa)*(mu_2+lambda))+((1-phi)*mu_1*beta_A)/((mu_1+kappa)*(mu_A+lambda))))
+
+Rc
 
 #final time for SSA
 tf<-60
@@ -36,7 +35,7 @@ A=repsim(S0, rates, nu, param=param, tf=360, simName, runs=20)
 
 
 #plot E for every simulation
-sampleruns<-ggplot(A, aes(x=t, y=Q_m))+geom_line(aes(color=run))
+sampleruns<-ggplot(A, aes(x=t, y=R))+geom_line(aes(color=run))
 print(sampleruns)
 
 #plot L, I, A for one simulation
