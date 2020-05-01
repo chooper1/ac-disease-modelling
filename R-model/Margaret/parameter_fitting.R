@@ -8,9 +8,13 @@ library(deSolve)
 library(minpack.lm)
 library(ggplot2)
 
-#load and format data
+#load data
 data <- read.csv("total_cases.csv")
+
+#modify this line to choose region
 cases=data$NScases
+
+#format data
 cases=cases[!is.na(cases)]
 t=c(1:length(cases))
 df=data.frame(t, cases)
