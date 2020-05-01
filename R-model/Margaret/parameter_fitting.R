@@ -1,16 +1,20 @@
 #fits parameters r and p for Teismann's parametric model
 
+#set to your working directory
+setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
+
 #load libraries
 library(deSolve)
 library(minpack.lm)
 library(ggplot2)
 
 #load and format data
-NScases=c(21,28,41,51,68,73,90,110,122,127,147,170,193,207,236,262,293,310,342,373,407,428,445,474,517,547,579)
-NSnewcases=c(7,13,10,17,5,17,20,12,5,20,23,23,14,29,26,31,17,32,31,34,21,17,29,43,30,32)
-t=c(1:length(NScases))
-df=data.frame(t, NScases)
-init=c(NScases[1])
+data <- read.csv("total_cases.csv")
+cases=data$NScases
+cases=cases[!is.na(cases)]
+t=c(1:length(cases))
+df=data.frame(t, cases)
+init=c(cases[1])
 
 alpha=1
 K=10^8
@@ -45,7 +49,7 @@ ssqpar=function(par){
   colnames(outdf)=c("t", "pred")
   
   #calculates residuals from ODE
-  ssqr=outdf$pred-df$NScases
+  ssqr=outdf$pred-df$cases
   return(ssqr)
 }
 
@@ -66,5 +70,5 @@ outdf=data.frame(out)
 colnames(outdf)=c("t", "pred")
 
 #formatting the plots
-plot=ggplot(data=outdf, aes(x=t, y=pred, color="red"))+geom_line()+geom_point(data=df, aes(x=t, NScases, color="green"))+theme(legend.position="none")+labs(x="time (days)", y="Total cases")
+plot=ggplot(data=outdf, aes(x=t, y=pred, color="red"))+geom_line()+geom_point(data=df, aes(x=t, cases, color="green"))+theme(legend.position="none")+labs(x="time (days)", y="Total cases")
 print(plot)
