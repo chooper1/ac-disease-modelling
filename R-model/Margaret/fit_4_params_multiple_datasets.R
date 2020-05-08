@@ -3,11 +3,11 @@ source("parameter_fitting.R")
 
 
 
-#read data
-data <- read.csv("time_series_19-covid-Confirmed_archived_0325.csv")
-tdata<-t(data)
+#read data from JHU
+JHU_data <- read.csv("time_series_19-covid-Confirmed_archived_0325.csv")
+JHU_data<-t(JHU_data)
 
-#generates a vector of region labels for the estimates
+#generates a vector of region labels for the estimates (JHU data)
 regions=function(tdata){
   
   regions=c()
@@ -50,7 +50,7 @@ fit_multiple=function(tdata){
       no_cases=append(no_cases, x)
     }
   }
-  tdata=subset(tdata, select=-c(no_cases))
+ # tdata=subset(tdata, select=-c(no_cases))
   
   #generates labels
   regions=regions(tdata)
@@ -60,8 +60,8 @@ fit_multiple=function(tdata){
   colnames(paramdf)=c(regions[1])
   
   #performs the fit for the rest of the regions, adds results to the dataframe
-  #start at 200 instead of 2 to run faster when debugging
-  for(x in seq(2, ncol(tdata))){
+  #if all the data were working, the loop would be for seq(2, ncol(tdata))
+  for(x in c(seq(2, 209), seq(401, 493))){
     print(x)
     p=data.frame(fit_param(x))
     colnames(p)=c(regions[x])
@@ -70,3 +70,6 @@ fit_multiple=function(tdata){
   }
   return(paramdf)
 }
+
+#write fitted parameters to csv, fit is the output from fit_multiple(tdata)
+write.csv(fit, "4_param_fit.csv", row.names=TRUE)
