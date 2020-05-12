@@ -4,7 +4,7 @@ source("parameter_fitting.R")
 
 
 #read data from JHU
-JHU_data <- read.csv("time_series_19-covid-Confirmed_archived_0325.csv")
+JHU_data <- read.csv("JHU_data/time_series_19-covid-Confirmed_archived_0325.csv")
 JHU_data<-t(JHU_data)
 
 #generates a vector of region labels for the estimates (JHU data)
@@ -19,7 +19,7 @@ regions=function(tdata){
 }
 
 #fits r, p, alpha, and K for a given region
-fit_param=function(region){
+fit_param=function(region, tdata){
   
   #format case data for a given region
   cases=as.integer(tdata[5:nrow(tdata), region])
@@ -56,14 +56,14 @@ fit_multiple=function(tdata){
   regions=regions(tdata)
   
   #performs the fit for the first element in the dataframe (assumption: the dataframe has at least 2 columns)
-  paramdf=data.frame(fit_param(1))
+  paramdf=data.frame(fit_param(1, tdata))
   colnames(paramdf)=c(regions[1])
   
   #performs the fit for the rest of the regions, adds results to the dataframe
   #if all the data were working, the loop would be for seq(2, ncol(tdata))
   for(x in c(seq(2, 209), seq(401, 493))){
     print(x)
-    p=data.frame(fit_param(x))
+    p=data.frame(fit_param(x, tdata))
     colnames(p)=c(regions[x])
     paramdf=cbind(paramdf, p)
     print(p)

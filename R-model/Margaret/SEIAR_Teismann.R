@@ -62,7 +62,7 @@ Rc=function(param){
   with(param, (mu_E/(mu_E+kappa)*(beta_1/(mu_1+kappa)+(mu_1*(phi*kappa+(1-phi)*lambda+mu_2)*beta_2)/((mu_1+kappa)*(mu_2+lambda)*(mu_2*kappa)))))
 }
 
-repsim=function(S0, rates, nu, param, tf, simName, runs, method=ssa.etl(tau=0.1)) {
+repsim=function(S0, rates, nu, param, tf, simName, runs, method=ssa.etl(tau=0.005)) {
   A=data.frame(NULL)
   for (run in seq(1, runs)) {
     res_ssa<-ssa(x0=S0,

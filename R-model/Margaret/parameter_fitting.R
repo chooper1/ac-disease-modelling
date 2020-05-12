@@ -1,4 +1,4 @@
-#fits parameters r and p for Teismann's parametric model
+#fits parameters r, p, alpha, and K for Teismann's parametric model
 
 #set to your working directory
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
@@ -61,7 +61,7 @@ rate=function(t, C, par){
 #calculates the sum of squared residuals, use with optim optimization
 ssq2=function(par, cases){
   
-  par=c(r=par[1],p=par[2], K=par[3], alpha=par[4])
+  par=c(r=par[1],p=par[2], alpha=par[3], K=par[4])
   
   times=seq(0, length(cases), 0.1)
   t=c(1:length(cases))
