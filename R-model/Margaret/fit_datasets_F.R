@@ -6,6 +6,8 @@ source("parameter_fitting_F.R")
 #read data from JHU
 JHU_F_data <- read.csv("JHU_data/time_series_covid19_deaths_global.csv")
 JHU_F_data<-t(JHU_F_data)
+JHU_C_data<-read.csv("JHU_data/time_series_covid19_confirmed_global.csv")
+JHU_C_data<-t(JHU_C_data)
 
 #generates a vector of region labels for the estimates (JHU data)
 regions=function(data){
@@ -69,3 +71,37 @@ fit_multiple_F=function(data){
   }
   return(paramdf)
 }
+
+fit_tau_mu_CFR=function(region, C_data, F_data){
+  
+  #estimates paramters for fatality data
+  F_parest=fit_param_F(region, F_data)
+  F_parest=c(F_parest[1], F_parest[2], F_parest[3], F_parest[4])
+  
+  #format case data for a given region
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  #discards data for days before initial outbreak
+ # start=min(which(cases_C>0, arr.ind=TRUE))
+#  cases_C=c(cases_C[start:length(cases_C)])
+  
+  #format fatality data for a given region
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  #discards data for days before initial outbreak
+ # cases_F=c(cases_F[start:length(cases_F)])
+  
+  par=c(tau=20)
+ # par=c(tau=1, mu_CFR=0.005)
+  #use this if just fitting tau
+  fit=optim(par=par, fn=ssq_C_F, cases_C=cases_C, cases_F=cases_F, F_parest=F_parest, method="Brent", lower=0, upper=1)
+  #fit=optim(par=par, fn=ssq_C_F, cases_C=cases_C, cases_F=cases_F, F_parest=F_parest, control=list(parscale=c(1,.5)))
+  
+  parest=fit$par
+  
+  return(parest)
+}
+
+
+plot=ggplot(data=cdf, aes(x=x, y=cases_C))+geom_point(data=cdf, aes(x=x, y=.0375*cases_C, color="red"))+geom_point(data=fdf, aes(x=x, y=cases_F, color="green"))
+print(plot)

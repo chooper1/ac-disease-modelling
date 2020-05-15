@@ -7,19 +7,7 @@ setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
 library(deSolve)
 library(minpack.lm)
 library(ggplot2)
-
-#load data
-#data <- read.csv("total_cases.csv")
-
-#modify this line to choose region
-#cases=data$NScases
-
-#format data
-#cases=cases[!is.na(cases)]
-#t=c(1:length(cases))
-#df=data.frame(t, cases)
-#init=c(cases[1])
-
+library(dde)
 
 #define the ODE
 F_rate=function(t, F_, par){
@@ -36,27 +24,6 @@ F_rate=function(t, F_, par){
   
   return(list(dF_))
 }
-
-
-#function that calculates residuals (to be minimized) - generates a vector of residuals, use with nls.lm optimization
-#ssqpar=function(par){
-
-# r=par[1]
-#p=par[2]
-#alpha=par[3]
-#K=par[4]
-
-#solves the ODE for times in t
-#  out=ode(y=init, times=t, func=F_rate, parms=par)
-
-#formats predicted data from ODE
-# outdf=data.frame(out)
-#colnames(outdf)=c("t", "pred")
-
-#calculates residuals from ODE
-#  ssqr=outdf$pred-df$cases
-# return(ssqr)
-#}
 
 #calculates the sum of squared residuals, use with optim optimization
 ssq_F=function(par, cases){
@@ -81,29 +48,31 @@ ssq_F=function(par, cases){
   return(ssqr)
 }
 
-#starting guess for parameters
-par=c(r_tilde=2, p=1, alpha=1, K_tilde=5000)
-
-#modified Levenberg-Marquardt algorithm to minimize residuals
-#fitval=nls.lm(par=par, fn=ssqpar)
-
-#minimize residuals with optim function
-#fit2=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10000)))
-
-
-#plotting predicted and experimental
-
-#simulating data based on estimated parameters
-#parest=coef(fitval)
-#parest2=fit2$par
-#times=seq(min(t), max(t), 0.1)
-#out=ode(y=init, times=times, func=rate, parms=parest2)
-#outdf=data.frame(out)
-#colnames(outdf)=c("t", "pred")
-
-#formatting the plots
-#plot=ggplot(data=outdf, aes(x=t, y=pred, color="red"))+geom_line()+geom_point(data=df, aes(x=t, cases, color="green"))+theme(legend.position="none")+labs(x="time (days)", y="Total cases")
-#print(plot)
-
-#summary(fitval)
-#parest2
+ssq_C_F=function(par, cases_C, cases_F, F_parest){
+  #mu_CFR=par[1]
+  #tau=0
+  
+  tau=par[1]
+  #mu_CFR=par[2]
+  #default if just fitting tau
+  mu_CFR=0.047
+  r_tilde=F_parest[1]
+  p=F_parest[2]
+  alpha=F_parest[3]
+  K_tilde=F_parest[4]
+  
+  times_C=c(1:length(cases_C))+tau
+  C_df=data.frame(times_C, cases_C)
+  
+  start=min(which(cases_F>0, arr.ind=TRUE))
+  
+  init=c(cases_F[start])
+  F_out=ode(y=init, times=times_C, func=F_rate, parms=F_parest)
+  
+  F_df=data.frame(F_out)
+  colnames(F_df)=c("t", "pred_F")
+  
+  ssqr=sum((F_df$pred_F*mu_CFR-C_df$cases_C))
+  
+  return(ssqr)
+}
