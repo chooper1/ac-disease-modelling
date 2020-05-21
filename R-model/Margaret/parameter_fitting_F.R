@@ -48,12 +48,33 @@ ssq_F=function(par, cases){
   return(ssqr)
 }
 
+#times are the times at which we want to generate our curve, so times-tau
+generate_F=function(times, init, start, F_parest){
+  F_parest=c(F_parest[1], F_parest[2], F_parest[3], F_parest[4])
+  y=c()
+  times2=c()
+  for(x in times){
+    if(x<start){
+      y=append(y, 0)
+    }
+    else{
+      times2=append(times2, x)
+    }
+  }
+  times2=times2-start+1
+  times2=append(times2, 1, after=0)
+  F_out=ode(y=init, times=times2, func=F_rate, parms=F_parest)
+  F_df=data.frame(F_out)
+  colnames(F_df)=c("t", "pred_F")
+  F_df=F_df[-1,]
+  y=c(y, F_df$pred_F)
+  new_df=data.frame(times, y)
+  return(new_df)
+}
+
 ssq_C_F=function(par, cases_C, cases_F, F_parest){
-  #mu_CFR=par[1]
-  #tau=0
-  
   tau=par[1]
-  #mu_CFR=par[2]
+
   #default if just fitting tau
   mu_CFR=0.047
   r_tilde=F_parest[1]
@@ -65,14 +86,12 @@ ssq_C_F=function(par, cases_C, cases_F, F_parest){
   C_df=data.frame(times_C, cases_C)
   
   start=min(which(cases_F>0, arr.ind=TRUE))
+  init=cases_F[start]
   
-  init=c(cases_F[start])
-  F_out=ode(y=init, times=times_C, func=F_rate, parms=F_parest)
+  F_df=generate_F(times_C, init, start, F_parest)
   
-  F_df=data.frame(F_out)
-  colnames(F_df)=c("t", "pred_F")
-  
-  ssqr=sum((F_df$pred_F*mu_CFR-C_df$cases_C))
+  ssqr=sum((F_df$y*mu_CFR-C_df$cases_C))
   
   return(ssqr)
 }
+

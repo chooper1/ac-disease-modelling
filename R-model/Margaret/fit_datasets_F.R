@@ -31,10 +31,10 @@ fit_param_F=function(region, data){
   cases=c(cases[start:length(cases)])
   
   #starting guess for parameters
-  par=c(r_tilde=2, p=1, alpha=1, K_tilde=5000)
+  par=c(r_tilde=2, p=1, alpha=1, K_tilde=cases[length(cases)])
   
   #performs the fit
-  fit=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10000)))
+  fit=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10)))
   parest=fit$par
   
   return(parest)
@@ -43,15 +43,15 @@ fit_param_F=function(region, data){
 fit_multiple_F=function(data){
   
   #removes columns for countries with no cases
-  no_cases=c()
+  few_cases=c()
   for(x in seq(1, ncol(data))){
     cases=as.integer(data[5:nrow(data), x])
     cases=cases[!is.na(cases)]
-    if(sum(cases)==0){
-      no_cases=append(no_cases, x)
+    if(cases[length(cases)]<=10){
+      few_cases=append(few_cases, x)
     }
   }
-  data=subset(data, select=-c(no_cases))
+  data=subset(data, select=-c(few_cases))
   
   #generates labels
   regions=regions(data)
@@ -81,16 +81,13 @@ fit_tau_mu_CFR=function(region, C_data, F_data){
   #format case data for a given region
   cases_C=as.integer(C_data[5:nrow(C_data), region])
   cases_C=cases_C[!is.na(cases_C)]
-  #discards data for days before initial outbreak
- # start=min(which(cases_C>0, arr.ind=TRUE))
-#  cases_C=c(cases_C[start:length(cases_C)])
+
   
   #format fatality data for a given region
   cases_F=as.integer(F_data[5:nrow(F_data), region])
   cases_F=cases_F[!is.na(cases_F)]
-  #discards data for days before initial outbreak
- # cases_F=c(cases_F[start:length(cases_F)])
-  
+
+
   par=c(tau=20)
  # par=c(tau=1, mu_CFR=0.005)
   #use this if just fitting tau
@@ -103,5 +100,7 @@ fit_tau_mu_CFR=function(region, C_data, F_data){
 }
 
 
-plot=ggplot(data=cdf, aes(x=x, y=cases_C))+geom_point(data=cdf, aes(x=x, y=.0375*cases_C, color="red"))+geom_point(data=fdf, aes(x=x, y=cases_F, color="green"))
-print(plot)
+
+
+#plot=ggplot(data=cdf, aes(x=x, y=cases_C))+geom_point(data=cdf, aes(x=x, y=.0375*cases_C, color="red"))+geom_point(data=fdf, aes(x=x, y=cases_F, color="green"))
+#print(plot)

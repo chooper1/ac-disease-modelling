@@ -88,7 +88,7 @@ par=c(r=2, p=1, alpha=1, K=5000)
 #fitval=nls.lm(par=par, fn=ssqpar)
 
 #minimize residuals with optim function
-#fit2=optim(par=par, fn=ssq2, cases=cases, control=list(parscale=c(1,1,1,10000)))
+fit2=optim(par=par, fn=ssq2, cases=cases, control=list(parscale=c(1,1,1,10000)))
 
 
 #plotting predicted and experimental
@@ -104,6 +104,7 @@ par=c(r=2, p=1, alpha=1, K=5000)
 #formatting the plots
 #plot=ggplot(data=outdf, aes(x=t, y=pred, color="red"))+geom_line()+geom_point(data=df, aes(x=t, cases, color="green"))+theme(legend.position="none")+labs(x="time (days)", y="Total cases")
 #print(plot)
+#plot=ggplot(data=outdf, aes(x=t, y=pred, color="red"))+geom_point(data=df, aes(x=t, cases, color="green"))+theme(legend.position="none")+labs(x="time (days)", y="Total cases")
 
 #summary(fitval)
 #parest2
