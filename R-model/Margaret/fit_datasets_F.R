@@ -99,3 +99,21 @@ fit_tau_mu_CFR=function(region, C_data, F_data){
   
   return(parest)
 }
+
+plot_cases_scaled=function(region, C_data, F_data, factor){
+  regions=regions(C_data)
+  
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  
+  times=c(1:length(cases_C))
+  
+  C_df=data.frame(times, cases_C)
+  F_df=data.frame(times, cases_F)
+  
+  plot=ggplot(data=C_df, aes(x=times, y=cases_C*factor, color="green"))+geom_line()+geom_line(data=F_df, aes(x=times, y=cases_F, color="red"))+theme(legend.position="none")+labs(title=regions[region])
+  print(plot)
+}
