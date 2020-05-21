@@ -65,6 +65,7 @@ generate_F=function(times, init, start, F_parest){
   times2=append(times2, 1, after=0)
   F_out=ode(y=init, times=times2, func=F_rate, parms=F_parest)
   F_df=data.frame(F_out)
+  times2=times2+start-1
   colnames(F_df)=c("t", "pred_F")
   F_df=F_df[-1,]
   y=c(y, F_df$pred_F)
@@ -74,14 +75,19 @@ generate_F=function(times, init, start, F_parest){
 
 ssq_C_F=function(par, cases_C, cases_F, F_parest){
   tau=par[1]
-
-  #default if just fitting tau
-  mu_CFR=0.047
+  if(length(par)==2){
+    mu_CFR=par[2]
+  }
+  else{
+    mu_CFR=0.05
+  }
+  
   r_tilde=F_parest[1]
   p=F_parest[2]
   alpha=F_parest[3]
   K_tilde=F_parest[4]
   
+  #shift times for cumulative cases by tau
   times_C=c(1:length(cases_C))+tau
   C_df=data.frame(times_C, cases_C)
   
@@ -90,8 +96,42 @@ ssq_C_F=function(par, cases_C, cases_F, F_parest){
   
   F_df=generate_F(times_C, init, start, F_parest)
   
-  ssqr=sum((F_df$y*mu_CFR-C_df$cases_C))
+  #print((F_df$y*mu_CFR-C_df$cases_C))
+  ssqr=sum((F_df$y-C_df$cases_C*mu_CFR)^2)
   
   return(ssqr)
 }
 
+plot_ssq_vs_tau=function(tau, cases_C, cases_F, F_parest){
+  ssq=c()
+  for(x in tau){
+    ssq_tau=ssq_C_F(c(x), cases_C, cases_F, F_parest)
+    ssq=append(ssq, ssq_tau)
+  }
+  df=data.frame(tau, ssq)
+  plot=ggplot(data=df, aes(x=tau, y=ssq))+geom_line()
+  print(plot)
+}
+
+
+plot_shifted_cases=function(par, cases_C, cases_F, F_parest){
+  tau=par[1]
+  mu_CFR=par[2]
+  
+  r_tilde=F_parest[1]
+  p=F_parest[2]
+  alpha=F_parest[3]
+  K_tilde=F_parest[4]
+  
+  #shift times for cumulative cases by tau
+  times_C=c(1:length(cases_C))+tau
+  C_df=data.frame(times_C, cases_C)
+  
+  start=min(which(cases_F>0, arr.ind=TRUE))
+  init=cases_F[start]
+  
+  F_df=generate_F(times_C, init, start, F_parest)
+  
+  plot=ggplot(data=C_df, aes(x=times_C, y=cases_C*mu_CFR, color="red"))+geom_line()+geom_line(data=F_df, aes(x=times, y=y, color="green"))+geom_line()
+  print(plot)
+}
