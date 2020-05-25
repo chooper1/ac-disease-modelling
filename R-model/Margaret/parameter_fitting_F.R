@@ -2,6 +2,7 @@
 
 #set to your working directory
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
+source("parameter_fitting.R")
 
 #load libraries
 library(deSolve)
@@ -71,6 +72,24 @@ generate_F=function(times, init, start, F_parest){
   y=c(y, F_df$pred_F)
   new_df=data.frame(times, y)
   return(new_df)
+}
+
+#input the times that have already been shifted by tau, and this function generates a fitted curve for the cumulative case data
+generate_C=function(par, cases_C, times){
+
+ start=min(which(cases_C>0, arr.ind=TRUE))
+ cases_C=c(cases_C[start:length(cases_C)])
+ fit_C=optim(par=par, fn=ssq2, cases=cases_C, control=list(parscale=c(1,1,1,10000)))
+ C_parest=fit_C$par
+ times2=times[-c(1:start-1)]
+ init=cases_C[1]
+ out=ode(y=init, times=times2, func=rate, parms=C_parest)
+ outdf=data.frame(out)
+ colnames(outdf)=c("times", "cases")
+ cases_C=rep(0, start-1)
+ cases_C=append(cases_C, outdf$cases)
+ df=data.frame(times, cases_C)
+ return(df)
 }
 
 ssq_C_F=function(par, cases_C, cases_F, F_parest){

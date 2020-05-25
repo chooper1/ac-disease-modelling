@@ -82,13 +82,13 @@ ssq2=function(par, cases){
 }
 
 #starting guess for parameters
-par=c(r=2, p=1, alpha=1, K=5000)
+#par=c(r=2, p=1, alpha=1, K=5000)
 
 #modified Levenberg-Marquardt algorithm to minimize residuals
 #fitval=nls.lm(par=par, fn=ssqpar)
 
 #minimize residuals with optim function
-fit2=optim(par=par, fn=ssq2, cases=cases, control=list(parscale=c(1,1,1,10000)))
+#fit2=optim(par=par, fn=ssq2, cases=cases, control=list(parscale=c(1,1,1,10000)))
 
 
 #plotting predicted and experimental
