@@ -20,7 +20,7 @@ regions=function(data){
   return(regions)
 }
 
-#fits r, p, alpha, and K for a given region
+#fits r_tilde, p, alpha, and K_tilde for a given region
 fit_param_F=function(region, data){
 
   #format case data for a given region
@@ -34,7 +34,7 @@ fit_param_F=function(region, data){
   par=c(r_tilde=2, p=1, alpha=1, K_tilde=cases[length(cases)])
   
   #performs the fit
-  fit=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10)))
+  fit=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10^floor(log10(cases[length(cases)])))))
   parest=fit$par
   
   return(parest)
@@ -100,7 +100,9 @@ fit_tau_mu_CFR=function(region, C_data, F_data){
   return(parest)
 }
 
+#plots the unfitted case data scaled down to visualize the curves in comparison to one another
 plot_cases_scaled=function(region, C_data, F_data, factor=0.05){
+  
   regions=regions(C_data)
   
   cases_C=as.integer(C_data[5:nrow(C_data), region])
@@ -118,6 +120,7 @@ plot_cases_scaled=function(region, C_data, F_data, factor=0.05){
   print(plot)
 }
 
+#plots the shifted and scaled fitted curves to see how good the tau and mu_CFR fit is
 #par is returned from fit_tau_mu_CFR
 plot_shifted_scaled_cases=function(par, region, C_data, F_data){
   regions=regions(C_data)
@@ -125,12 +128,8 @@ plot_shifted_scaled_cases=function(par, region, C_data, F_data){
   tau=par[1]
   factor=par[2]
   
+  #fits parameters to generate values for F
   F_parest=fit_param_F(region, F_data)
-  
-  r_tilde=F_parest[1]
-  p=F_parest[2]
-  alpha=F_parest[3]
-  K_tilde=F_parest[4]
   
   cases_C=as.integer(C_data[5:nrow(C_data), region])
   cases_C=cases_C[!is.na(cases_C)]
@@ -145,8 +144,10 @@ plot_shifted_scaled_cases=function(par, region, C_data, F_data){
   start=min(which(cases_F>0, arr.ind=TRUE))
   init=cases_F[start]
   
+  #generates values for F from fit
   F_df=generate_F(times_C, init, start, F_parest)
   
+  #generates values for C from fit
   par_C=c(r=2, p=1, alpha=1, K=5000)
   C_df=generate_C(par_C, cases_C, times_C)
   
@@ -175,7 +176,9 @@ plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data, F_data){
   print(plot)
 }
 
-ratio_vs_time=function(region, C_data, F_data, mu_CFR=1){
+#returns the "underreporting ratio" vs time
+#If no mu_CFR is specified, it just returns the ratio between the case and fatality curves 
+ratios_vs_time=function(region, C_data, F_data, mu_CFR=1){
   
   parest=fit_tau_mu_CFR(region, C_data, F_data)
   
@@ -194,27 +197,31 @@ ratio_vs_time=function(region, C_data, F_data, mu_CFR=1){
   #shift times for cumulative cases by tau
   times=c(1:length(cases_C))+tau
  
+  #generates C and F curves from the fits
   par_C=c(r=2, p=1, alpha=1, K=5000)
   C_df=generate_C(par_C, cases_C, times)
   
   F_df=generate_F(times, init, start, F_parest)
-  print(C_df)
-  print(F_df)
-  start=min(which(cases_C>0, arr.ind=TRUE))
+  
+  #starts calculating the ratio at the point where both C and F become nonzero (should be very close together, since they have been shifted)
+  start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
+  
+  #removes the zeroes before "start"
   F_df=F_df[-(1:start-1),]
   C_df=C_df[-(1:start-1),]
   times=times[-(1:start-1)]
   
-  ratios=F_df$y/C_df$cases_C
+  ratios=((1/mu_CFR)*F_df$y)/C_df$cases_C
 
   df=data.frame(times, ratios)
   return(df)
 }
 
+#plots the ratios calculated in ratios_vs_time()
 plot_ratios_vs_time=function(region, C_data, F_data, mu_CFR=1){
   regions=regions(C_data)
   
-  df=ratio_vs_time(region, C_data, F_data, mu_CRF)
+  df=ratios_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   plot=ggplot(data=df, aes(x=times, y=ratios))+geom_line()+labs(title=regions[region])+theme(legend.position="none")
   print(plot)
 }

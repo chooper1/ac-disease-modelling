@@ -16,7 +16,7 @@ paramset<-read.csv("params_Teismann.csv")
 #initial states
 S0<-c(S=1000, E=0, B=0, A=0, I_p=20, I_m=0, J=0, H=0, F=0, Q_m=0, Q_J=0, R=0)
 
-#choose parameter sets
+#choose parameter set
 param=paramset[1, 2:17]
 
 #control reproduction number, when control measures are in place
@@ -30,7 +30,7 @@ tf<-60
 #output times for ODE solver
 times<-seq(0, tf, by=0.01)
 
-#number of simulations
+#"runs" is number of simulations
 A=repsim(S0, rates, nu, param=param, tf=360, simName, runs=20)
 
 
