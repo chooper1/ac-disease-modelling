@@ -8,6 +8,8 @@ JHU_F_data <- read.csv("JHU_data/time_series_covid19_deaths_global.csv")
 JHU_F_data<-t(JHU_F_data)
 JHU_C_data<-read.csv("JHU_data/time_series_covid19_confirmed_global.csv")
 JHU_C_data<-t(JHU_C_data)
+JHU_R_data<-read.csv("JHU_data/time_series_covid19_recovered_global.csv")
+JHU_R_data<-t(JHU_R_data)
 
 #generates a vector of region labels for the estimates (JHU data)
 regions=function(data){
@@ -178,7 +180,7 @@ plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data, F_data){
 
 #returns the "underreporting ratio" vs time
 #If no mu_CFR is specified, it just returns the ratio between the case and fatality curves 
-ratios_vs_time=function(region, C_data, F_data, mu_CFR=1){
+phi_vs_time=function(region, C_data, F_data, mu_CFR=1){
   
   parest=fit_tau_mu_CFR(region, C_data, F_data)
   
@@ -218,10 +220,10 @@ ratios_vs_time=function(region, C_data, F_data, mu_CFR=1){
 }
 
 #plots the ratios calculated in ratios_vs_time()
-plot_ratios_vs_time=function(region, C_data, F_data, mu_CFR=1){
+plot_phi_vs_time=function(region, C_data, F_data, mu_CFR=1){
   regions=regions(C_data)
   
-  df=ratios_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
+  df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   plot=ggplot(data=df, aes(x=times, y=ratios))+geom_line()+labs(title=regions[region])+theme(legend.position="none")
   print(plot)
 }

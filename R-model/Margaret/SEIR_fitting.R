@@ -1,51 +1,72 @@
 library("deSolve")
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
-source("SEIAR_Teismann.R")
+source("fit_datasets_F.R")
 
-#read in parameter values
-paramset<-read.csv("params_Teismann.csv")
 
-#choose parameter set
-param=paramset[1, 2:17]
-
-rhs_SEIR=function(t, y, par, parset){
+#need to find a better way to find phi(t)
+rhs_SEIR=function(t, y, par, phi){
+  with(as.list(c(y, par)), {
+  dS=-(1/(S+L+I_1+I_2+R_1+R_2))*S*(beta_l*L+beta_1*I_1+beta_2*I_2)
+  dL=(1/(S+L+I_1+I_2+R_1+R_2))*S-a*kappa*L
+  dI_1=a*(1-1/phi[which(phi$times==t), 2])*kappa*L-eta*I_1
+  dI_2=a*(1/phi[which(phi$times==t), 2])*kappa*L-eta*I_2
+  dR_1=eta*I_1
+  dR_2=eta*I_2
+  dF=eta*(1-rho)*I_2
   
-  
-  #dS=-c*(beta_p*I_p+beta_m*I_m+beta_A*A)*S/(S+E+B+A+I_p+I_m+J+H+F+Q_m+Q_J+R); 
-  #dE=c*(beta_p*I_p+beta_m*I_m+beta_A*A)*S/(S+E+B+A+I_p+I_m+J+H+F+Q_m+Q_J+R)+gamma-mu_E*E-kappa*E;
-  #dB=mu_A*A
-  #dA=gamma+(1-phi)*mu_1*I_p-mu_A*A-kappa*A;
-  #dI_p=gamma+mu_E*E-mu_1*I_p-kappa*I_p;
-  #dI_m=phi*mu_1*I_p-theta*mu_2*I_m-lambda*I_m;
-  #dJ=theta*mu_2*I_m-mu_J*J-lambda*J;
-  #dH=(1-theta)*mu_2*I_m-mu_H;
-  dF=(1-rho)*mu_H*H;
-  #dQ_m=lambda*I_m-mu_2*Q_m;
-  #dQ_J=mu_2*Q_m+lambda*J-mu_J*Q_J;
-  #dR=mu_J*J+mu_J*Q_J+rho*mu_H*H;
-  list(c(dS, dE, dB, dA, dI_p, dI_m, dJ, dH, dF, dQ_m, dQ_J, dR))
+  list(c(dS, dL, dI_1, dI_2, dR_1, dR_2, dF))
+  })
 }
 
-#not right yet, we need to use the hospitalization data
-ssq_F=function(par, cases_F){
+ssq_SEIR=function(par, region, C_data, F_data, R_data, mu_CFR=1){
+
   
-  par=c(rho=par[1])
-  mu_H=0.076923
+  par=c(beta_l=par[1], beta_1=par[2], beta_2=par[3], a=par[4], rho=par[5])
   
-  times=seq(0, length(cases_F), 0.1)
-  t=c(1:length(cases_F))
-  times=sort(union(times, t))
-  df=data.frame(t, cases_F)
-  init=c(cases_F[1])
+  phi=phi_vs_time(region, C_data, F_data, mu_CFR)
+  tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
+  tau=tau_mu_CFR[1]
   
-  #solves the ODE for times in t
-  out=ode(y=init, times=times, func=rhs_SEIR, parms=par)
+  phi$times=phi$times-tau
+  times=phi$times
+  start=times[1]
   
-  #formats predicted data from ODE
-  outdf=data.frame(out)
-  colnames(outdf)=c("t", "pred")
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  cases_C=c(cases_C[start:length(cases_C)])
   
-  #calculates residuals from ODE
-  ssqr=sum((outdf$pred[outdf$t %in% t]-df$cases_F)^2)
-  return(ssqr)
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  cases_F=c(cases_F[start:length(cases_F)])
+  
+  cases_R=as.integer(R_data[5:nrow(R_data), region])
+  cases_R=cases_R[!is.na(cases_R)]
+  cases_R=c(cases_R[start:length(cases_R)])
+  
+  
+
+  
+  active_cases=cases_C-cases_R
+  
+  pop=971395
+  s0=c(S=pop, L=0, I_1=(1-1/phi[1, 2])*active_cases[1], I_2=active_cases[1], R_1=(1-1/phi[1, 2])*cases_R[1], R_2=cases_R[1], F_=cases_F[1])
+  
+  ode_soln=ode(y=S0, times, func=rhs_SEIR, par=par, phi=phi)
+  
+  I_2=ode_soln[,"I_2"]
+  R_2=ode_soln[,"R_2"]
+  F_=ode_soln[,"F_"]
+  
+  ssq=sum((active_cases-R_2)^2)+sum((cases_F-F_)^2)+sum((cases_R-R_2)^2)
+  
+  return(ssq)
+  
+}
+
+fit_to_SEIR=function(region, C_data, F_data, R_data, mu_CFR=1){
+  par=c(beta_L=0.1, beta_1=0.1, beta_2=0.1, a=1, rho=0.8)
+  
+  fit=optim(par=par, fn=ssq_SEIR, region=region, C_data=C_data, F_data=F_data, R_data=R_data, mu_CFR=mu_CFR, control=list(parscale=c(1,1, 1, 1, 1)))
+  
+
 }
