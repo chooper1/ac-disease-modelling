@@ -23,7 +23,7 @@ rhs_SEIR=function(t, y, par, fit){
   })
 }
 
-ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_CFR=0.01, phi, times, start, fit, S0, pop){
+ssq_SEIR=function(par, region, active_cases, cases_F, cases_R, mu_CFR=0.01, phi, times, start, fit, S0, pop){
   
   par=c(par[1], par[2], par[3], par[4], par[5], 
         kappa=1/6, eta=1/12)
@@ -76,7 +76,8 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
   
   par=c(beta_l=0.1, beta_1=0.1, beta_2=0.1, a=1, rho=0.8)
   
-  ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, cases_C=cases_C, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
+  #ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
+  ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, method="L-BFGS-B", lower=c(0, 0, 0, 0, 0), upper=c(1, 1, 1, 100, 1))
   
   return(ODE_fit)
 
