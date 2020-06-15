@@ -11,6 +11,13 @@ JHU_C_data<-t(JHU_C_data)
 JHU_R_data<-read.csv("JHU_data/time_series_covid19_recovered_global.csv")
 JHU_R_data<-t(JHU_R_data)
 
+#this data goes up to May 4, for comparison with Flaxman et. al
+C_data_May_4<-read.csv("JHU_data/time_series_covid19_confirmed_global - to May 4.csv")
+C_data_May_4<-t(C_data_May_4)
+
+F_data_May_4 <- read.csv("JHU_data/time_series_covid19_deaths_global - to May 4.csv")
+F_data_May_4<-t(F_data_May_4)
+
 #generates a vector of region labels for the estimates (JHU data)
 regions=function(data){
   
@@ -220,10 +227,41 @@ phi_vs_time=function(region, C_data, F_data, mu_CFR=1){
 }
 
 #plots the ratios calculated in ratios_vs_time()
-plot_phi_vs_time=function(region, C_data, F_data, mu_CFR=1){
+plot_phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=.01){
   regions=regions(C_data)
   
   df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   plot=ggplot(data=df, aes(x=times, y=ratios))+geom_line()+labs(title=regions[region])+theme(legend.position="none")
   print(plot)
+}
+
+#returns an estimate for total number of people infected in a region to date, accounting for underreporting
+total_infected=function(region, C_data, F_data, mu_CFR=0.01){
+  regions=regions(C_data)
+  
+  df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
+  
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  
+  #starts calculating the ratio at the point where both C and F become nonzero (should be very close together, since they have been shifted)
+  start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
+  cases_C=c(cases_C[start:length(cases_C)])
+  
+  #should we find total by multiplying final case count by final phi value, or do we need to adjust for level of underreporting as we go?
+  new_cases=c(cases_C[1])
+  for(x in c(2:length(cases_C))){
+    new_case=cases_C[x]-cases_C[x-1]
+    new_cases=append(new_cases, new_case)
+  }
+  
+  print(length(new_cases)==length(df$ratios))
+  true_new_cases=new_cases*df$ratios
+  
+  total_cases=sum(true_new_cases)
+  
+  return(total_cases)
 }
