@@ -186,9 +186,8 @@ plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data, F_data){
 }
 
 #returns the "underreporting ratio" vs time
-#If no mu_CFR is specified, it just returns the ratio between the case and fatality curves 
-phi_vs_time=function(region, C_data, F_data, mu_CFR=1){
-  
+phi_vs_time=function(region, C_data, F_data, mu_CFR=0.01){
+
   parest=fit_tau_mu_CFR(region, C_data, F_data)
   
   tau=parest[1]
@@ -249,19 +248,19 @@ total_infected=function(region, C_data, F_data, mu_CFR=0.01){
   
   #starts calculating the ratio at the point where both C and F become nonzero (should be very close together, since they have been shifted)
   start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
+  pre_start_cases=cases_C[start-1]
   cases_C=c(cases_C[start:length(cases_C)])
   
-  #should we find total by multiplying final case count by final phi value, or do we need to adjust for level of underreporting as we go?
+  
   new_cases=c(cases_C[1])
   for(x in c(2:length(cases_C))){
     new_case=cases_C[x]-cases_C[x-1]
     new_cases=append(new_cases, new_case)
   }
   
-  print(length(new_cases)==length(df$ratios))
   true_new_cases=new_cases*df$ratios
-  
-  total_cases=sum(true_new_cases)
+
+  total_cases=sum(true_new_cases)+pre_start_cases
   
   return(total_cases)
 }

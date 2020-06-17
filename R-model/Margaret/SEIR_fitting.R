@@ -8,8 +8,8 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type){
   with(as.list(c(y, par, fit)), {
     
     if(t>=phi$times[1]){
-    newdata=data.frame(times=as.numeric(t))
-    phi=as.numeric(predict(fit, newdata=newdata))
+      newdata=data.frame(times=as.numeric(t))
+      phi=as.numeric(predict(fit, newdata=newdata))
     }
     else{
       phi=mean(phi$ratios)
@@ -43,12 +43,12 @@ ssq_SEIR=function(par, region, active_cases, cases_F, cases_R, mu_CFR=0.01, phi,
   
   if(beta_type=="different"){
     par=c(par[1], par[2], par[3], par[4], a=1,  
-        kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+          kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
   } else if(beta_type=="equal"){
     par=c(par[1], par[2], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
   }
   
-    
+  
   ode_soln=ode(y=S0, times, func=rhs_SEIR, par=par, fit=fit, N=N, phi=phi, beta_type=beta_type)
   
   I_2=ode_soln[,"I_2"]
@@ -103,14 +103,15 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
   N=pop
   
   if(beta_type=="different"){
-  par=c(beta_l=0.1, beta_1=0.1, beta_2=0.1, rho=0.8)
+    par=c(beta_l=0.1, beta_1=0.1, beta_2=0.1, rho=0.8)
   }
   else if(beta_type=="equal"){
-    par=c(beta=0.1, rho=0.8)
+    par=c(beta=0.38, rho=0.55)
   }
   
+  #scale on parameters is different depending on how many pars there are - fix this!
   #ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
-  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, method="L-BFGS-B", lower=c(0, 0, 0, 0, 0), upper=c(1, 1, 1, 100, 1))
+  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, method="L-BFGS-B", lower=c(0, 0), upper=c(1, 1))
   fit_par=ODE_fit$par
   
   return(fit_par)
@@ -168,7 +169,7 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   
   if(beta_type=="different"){
     fit_par=c(fit_par[1], fit_par[2], fit_par[3], fit_par[4], a=1,  
-          kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+              kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
   } else if(beta_type=="equal"){
     fit_par=c(fit_par[1], fit_par[2], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
   }
