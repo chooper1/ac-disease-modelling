@@ -95,9 +95,9 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
                  # (index i)
     Y = np.zeros((Npop,1))
     x = (-1)*np.ones((Npop,1))
-    a = 90*np.random.uniform(0,1,size=(Npop,1))
-    Z = np.zeros((Npop,T))
-    y = np.zeros((Npop,T))
+    #a = 90*np.random.uniform(0,1,size=(Npop,1))
+    #Z = np.zeros((Npop,T))
+    #y = np.zeros((Npop,T))
 
     N = np.zeros((T,5))
     Cu = np.zeros((T,3))
@@ -106,10 +106,8 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
 
     # sprinkle the intial infectives over classes E and I_1
     drawind = np.random.randint(0, Npop, size=init)
-    for i in range(0,init):
-        Y[drawind[i]] = 1 # update the state
-        x[drawind[i]] = np.random.randint(tau[1]) # update time-after-infection for initial
-
+    Y[drawind] = 1
+    x[drawind] = np.random.randint(tau[1]) # update time-after-infection for initial
 
     # Fix R0!!!!!
     # to compute R0(t) on the fly:
@@ -132,68 +130,39 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
 
         sig = sigma
         betas = beta(x,Y,sig,bet,tau)
-        infind = []
-        b = []
-        for i in range(0,len(betas)):
-            if betas[i] > 10**(-3):
-                infind.append(i)
-                b.append(betas[i])
+        infind_ = betas > 10**(-3);
+        b = betas[infind_]
+        infind = np.nonzero(infind_)
+        infind = infind[0]
 
         if len(b) > 0:
             infectives = len(infind) # number of infective infectives
             cNet = np.floor(Net[infind][:]) + np.floor(Net[infind][:]-np.floor(Net[infind][:])+np.random.uniform(0,1,size=(infectives,Npop)))
             cNet = cNet.astype(np.int64)
-            B = np.ones((infectives,Npop))
-            for i in range(0,len(b)):
-                for j in range(0,Npop):
-                    B[i][j] = b[i]
+            B = np.repeat(b[:,np.newaxis], Npop, axis=1)
             YY = np.ones((infectives,1)) * np.transpose(Y)
             ZZ = np.zeros((infectives,Npop))
             yy = np.zeros((infectives,Npop))
 
             for n in range(1, np.max(cNet)+1):
                 randseed = np.random.uniform(0,1,size=(infectives,Npop))
-                Ind = []
-                for i in range(0,len(cNet)):
-                    for j in range(0,len(cNet[0])):
-                        if cNet[i][j] >= n:
-                            Ind.append((i,j))
-
-                index_ = 0
-                for (q,r) in Ind:
-                    if randseed[q][r].item() < B[q][r].item() and YY[q][r].item() == 0:
-                        ZZ[(q,r)] = 1
-                        yy[(q,r)] = 1
+                randindex = np.logical_and(randseed < B, YY == 0)
+                expr = np.logical_and(randindex, cNet >= n)
+                ZZ[expr] = 1
+                yy[expr] = 1
 
             ZZ_sum = np.sum(ZZ,0)
             yy_sum = np.sum(yy,0)
-            for i in range(0,len(Y)):
-                Y[i] = Y[i] + ZZ_sum[i]  # collapsing ZZ gives vector of new infections
-                x[i] = x[i] + dt*yy_sum[i]
+            Y = np.add(Y,np.reshape(ZZ_sum, (Npop,1)))
+            x = np.add(x, np.reshape(dt*yy_sum, (Npop,1)))
+            N[k][0] = np.sum(x == 0)
 
-            N[k][0] = 0
-            for i in range(0,len(x)):
-                if x[i] == 0:
-                    N[k][0] = N[k][0] + 1 # number of newly infected
-
-        eind = []
-        iind = []
-        jind = []
-        hind = []
-        aind = []
-
-        for i in range(0,len(Y)):
-            if Y[i] == 1:
-                eind.append(i)
-            elif Y[i] == 2:
-                iind.append(i)
-            elif Y[i] == 4:
-                jind.append(i)
-            elif Y[i] == 5:
-                hind.append(i)
-            elif Y[i] == 3:
-                aind.append(i)
-
+        eind = np.nonzero(Y == 1)[0]
+        iind = np.nonzero(Y == 2)[0]
+        jind = np.nonzero(Y == 4)[0]
+        hind = np.nonzero(Y == 5)[0]
+        aind = np.nonzero(Y == 3)[0]
+         
         #E -> I and E-> A
         randseed = np.random.uniform(0,1,size=(len(eind),2))
         symptind = []
@@ -293,10 +262,7 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
         #
         # R0{1,1} = R0theory;
         # R0{1,2} = RR;
-
-        for i in range(0,len(x)):
-            if x[i] > -1:
-                x[i] = x[i] + dt
+        x[x > -1] += dt
 
     return [N,Cu,P,Ou,R0,R0t,Y,x]
 
