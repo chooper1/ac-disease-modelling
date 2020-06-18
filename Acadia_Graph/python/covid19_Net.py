@@ -84,13 +84,16 @@ from distShape import distShape
 #            a    (Npop x 1 vector) individual age       (index j)
 #            x    (Npop x 1 vector) time after infection (index k)
 
-def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
+def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
 
-    Npop = Net.shape[0];
+    Npop = NetGrouped[0].shape[0];
     # adjust things to account for a time step that's different from "one day"
     dt = 1/ndt;   # time step
-    Net = dt*Net; # since Net is given as contacts "per day", the number of contacts
+    NetGrouped = [dt*x for x in NetGrouped] # since Net is given as contacts "per day", the number of contacts
                  # "per dt" is dt x C
+    #for k in range(0,7):
+    #    NetGrouped[k] = dt*NetGrouped[k]
+    
     T = ndt*T;    # turn simulation time span T (in days) into number of iterations
                  # (index i)
     Y = np.zeros((Npop,1))
@@ -119,14 +122,16 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
                                # each individual causes
     #R0 =cell(1,2); #### Check this
     R0t = np.zeros((T,3))
-
+    
     for k in range(0,T):
-
-    #fix R0Theory
-    #avecontacts = np.mean(np.sum(Net, axis=1))
-    #xx = range(0,100,cohortlength)  #xx = linspace(0,cohortlength,100);
-    #aveinfectiveness = (sum(beta(xx(xx<=tau(2)),1)) +ph(1)*sum(beta(xx(xx>tau(2) & xx<=tau(2)+tau(3)),2))+(1-ph(1))*sum(beta(xx(xx>tau(2) & xx<=tau(2)+tau(5)),3)))*100/cohortlength;
-    #R0theory = aveinfectiveness*avecontacts;
+        NetInd = k%7
+        Net = NetGrouped[NetInd]
+    
+        #fix R0Theory
+        #avecontacts = np.mean(np.sum(Net, axis=1))
+        #xx = range(0,100,cohortlength)  #xx = linspace(0,cohortlength,100);
+        #aveinfectiveness = (sum(beta(xx(xx<=tau(2)),1)) +ph(1)*sum(beta(xx(xx>tau(2) & xx<=tau(2)+tau(3)),2))+(1-ph(1))*sum(beta(xx(xx>tau(2) & xx<=tau(2)+tau(5)),3)))*100/cohortlength;
+        #R0theory = aveinfectiveness*avecontacts;
 
         sig = sigma
         betas = beta(x,Y,sig,bet,tau)
@@ -289,14 +294,3 @@ def mu(x,n,sigma,tau,dt):
     else:
        m = dt*np.ones(len(x))
     return m
-
-#def phi(x,n,ph):
-#    if n == 1:      # symptomatic vs. asymptomatic
-#       f = ph[0]
-#    elif n == 2:    # mild vs. severe (hospital)
-#       f = ph[1]
-#    elif n == 3:    # recovery vs. death
-#       f = ph[2]
-#    else:
-#       f = 0
-#    return f
