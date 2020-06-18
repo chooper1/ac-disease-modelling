@@ -9,7 +9,7 @@ def main():
     ph = [.75, 1, 0.9]
     init = 4
     T=100
-    Npop = 1000
+    Npop = 4000
     sigma = [1, 1]
     ndt = 1
     # contact matrix

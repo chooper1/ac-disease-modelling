@@ -165,83 +165,69 @@ def covid19_Net(bet,tau,ph,init,Net,T,sigma,ndt):
          
         #E -> I and E-> A
         randseed = np.random.uniform(0,1,size=(len(eind),2))
-        symptind = []
-        asymptind = []
-        for i in range(0,len(eind)):
-            if randseed[i][0] < mu(x[eind[i]],1,sigma,tau,dt) and randseed[i][1] < ph[0]: #phi(a[eind[i]],1,ph):
-                symptind.append(eind[i])
-                Y[eind[i]] = 2
-            elif randseed[i][0] < mu(x[eind[i]],1,sigma,tau,dt) and randseed[i][1] >= ph[0]: #phi(a[eind[i]],1,ph):
-                asymptind.append(eind[i])
-                Y[eind[i]] = 3
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau,dt), randseed[:,1] < ph[0])
+        expr_ind = np.nonzero(expr)[0]
+        symptind = eind[expr_ind]
+        Y[symptind] = 2
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau,dt), randseed[:,1] >= ph[0])
+        expr_ind = np.nonzero(expr)[0]
+        asymptind = eind[expr_ind]
+        Y[asymptind] = 3
 
         N[k][1] = len(symptind)
         N[k][2] = len(asymptind)
 
         # I -> J and I-> H
         randseed = np.random.uniform(0,1,size=(len(iind),2))
-        mildind = []
-        hospind = []
-        for i in range(0,len(iind)):
-            if randseed[i][0] < mu(x[iind[i]],2,sigma,tau,dt) and randseed[i][1] < ph[1]: #phi(a[iind[i]],2,ph):
-                mildind.append(iind[i])
-                Y[iind[i]] = 4
-            elif randseed[i][0] < mu(x[iind[i]],2,sigma,tau,dt) and randseed[i][1] >= ph[1]: #phi(a[iind[i]],2,ph):
-                hospind.append(iind[i])
-                Y[iind[i]] = 5
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau,dt), randseed[:,1] < ph[1])
+        expr_ind = np.nonzero(expr)[0]
+        mildind = iind[expr_ind]
+        Y[mildind] = 4
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau,dt), randseed[:,1] >= ph[1])
+        expr_ind = np.nonzero(expr)[0]
+        hospind = iind[expr_ind]
+        Y[hospind] = 3
+        
 
         # J -> R
         randseed = np.random.uniform(0,1,size=(len(jind),1))
-        rind = []
-        for i in range(0,len(jind)):
-            if randseed[i] < mu(x[jind[i]],4,sigma,tau,dt):
-                rind.append(jind[i])
-                Y[jind[i]] = 6
+        expr = randseed < mu(x[:,0][jind],4,sigma,tau,dt)
+        expr_ind = np.nonzero(expr)[0]
+        rind = jind[expr_ind]
+        Y[rind] = 6
 
         # H -> R and H -> F
         randseed = np.random.uniform(0,1,size=(len(hind),2))
-
-        hrind = []
-        dind = []
-        for i in range(0,len(hind)):
-            if randseed[i][0] < mu(x[hind[i]],5,sigma,tau,dt) and randseed[i][1] < ph[2]: #phi(a[hind[i]],3,ph):
-                hrind.append(hind[i])
-                Y[hind[i]] = 6
-            elif randseed[i][0] < mu(x[hind[i]],5,sigma,tau,dt) and randseed[i][1] >= ph[2]: #phi(a[hind[i]],3,ph):
-                dind.append(hind[i])
-                Y[hind[i]] = 7
+        
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau,dt), randseed[:,1] < ph[2])
+        expr_ind = np.nonzero(expr)[0]
+        hrind = hind[expr_ind]
+        Y[hrind] = 6
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau,dt), randseed[:,1] >= ph[2])
+        expr_ind = np.nonzero(expr)[0]
+        dind = hind[expr_ind]
+        Y[dind] = 7
 
         N[k][4] = len(hrind) + len(rind)
         N[k][3] = len(dind)
 
         # A -> B
         randseed = np.random.uniform(0,1,size=(len(aind),1))
-        bind = []
-        for i in range(0,len(aind)):
-            if randseed[i] < mu(x[aind[i]],3,sigma,tau,dt):
-                bind.append(aind[i])
-                Y[aind[i]] = 8
-
-        for i in range(0,len(Y)):
-            if Y[i] == 0:
-                P[k][5] = P[k][5] + 1
-            elif Y[i] == 1:
-                P[k][0] = P[k][0] + 1
-            elif Y[i] == 2:
-                P[k][1] = P[k][1] + 1
-            elif Y[i] == 3:
-                P[k][2] = P[k][2] + 1
-            elif Y[i] == 4:
-                P[k][3] = P[k][3] + 1
-            elif Y[i] == 5:
-                P[k][4] = P[k][4] + 1
-            elif Y[i] == 6:
-                Ou[k][0] = Ou[k][0] + 1
-            elif Y[i] == 7:
-                Ou[k][1] = Ou[k][1] + 1
-            elif Y[i] == 8:
-                Ou[k][2] = Ou[k][2] + 1
-
+        expr = randseed < mu(x[:,0][aind],3,sigma,tau,dt)
+        expr_ind = np.nonzero(expr)[0]
+        bind = aind[expr_ind]
+        Y[bind] = 8
+                
+        P[k][5] += np.count_nonzero(Y == 0)
+        P[k][0] += np.count_nonzero(Y == 1)
+        P[k][1] += np.count_nonzero(Y == 2)
+        P[k][2] += np.count_nonzero(Y == 3)
+        P[k][3] += np.count_nonzero(Y == 4)
+        P[k][4] += np.count_nonzero(Y == 5)
+        Ou[k][0] += np.count_nonzero(Y == 6)
+        Ou[k][1] += np.count_nonzero(Y == 7)
+        Ou[k][2] += np.count_nonzero(Y == 8)
+        
         if k > 1:
              Cu[k][:] = Cu[k-1][:] + N[k][:3]
         else:
@@ -272,16 +258,10 @@ def beta(x,n,sigma,bet,tau):
     if len(x) != len(n):
         return
     s = sigma[0]
-    ind_1 = []
-    ind_2 = []
-    ind_3 = []
-    for i in range(0,len(x)):
-        if n[i] == 1:
-            ind_1.append(i)
-        elif n[i] == 2:
-            ind_2.append(i)
-        elif n[i] == 3:
-            ind_3.append(i)
+    
+    ind_1 = np.nonzero(n == 1)[0]
+    ind_2 = np.nonzero(n == 2)[0]
+    ind_3 = np.nonzero(n == 3)[0]
 
     b_1 = bet[0]*distShape(x,ind_1,tau[0],s,1)
     b_2 = bet[1]*distShape(x,ind_2,tau[0],s,1)
