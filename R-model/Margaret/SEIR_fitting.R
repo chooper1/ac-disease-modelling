@@ -80,15 +80,21 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
   })
 }
 
-ssq_SEIR=function(par, region, active_cases, cases_F, cases_R, mu_CFR=0.01, phi, times, start, fit, S0, pop, N, beta_type, intervention){
+ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, times, start, fit, S0, pop, N, beta_type, intervention, mu_CFR){
   
   if(beta_type=="different"){
-    par=c(par[1], par[2], par[3], par[4], a=1,  
+    names=c("beta_1", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    par=c(par[1], par[2], par[3], rho=1-mu_CFR, a=1,  
           kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names(par)=names
   } else if(beta_type=="equal"){
-    par=c(par[1], par[2], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names=c("beta", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    par=c(par[1], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names(par)=names
   } else if(beta_type=="time-dep"){
-    par=c(par[1], par[2], par[3], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names=c("beta_b", "beta_a", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    par=c(par[1], par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names(par)=names
   }
   
   
@@ -98,23 +104,27 @@ ssq_SEIR=function(par, region, active_cases, cases_F, cases_R, mu_CFR=0.01, phi,
   I_4=ode_soln[,"I_4"]
   R_2=ode_soln[,"R_2"]
   F_=ode_soln[,"F_"]
+  total_cases=I_2+I_4+R_2+F_
   
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))/mean(active_cases)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)+sum(sqrt((cases_R-R_2)^2))/mean(cases_R)
-  ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))+sum(sqrt((cases_R-R_2)^2))
-  
+  #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))/mean(active_cases)
+ # ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))
+  ssq=sum(sqrt((cases_C-(total_cases))^2))/mean(cases_C)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)
+  #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))+sum(sqrt((cases_R-R_2)^2))
   
   return(ssq)
   
 }
 
 #intervention is the number of the day when interventions started, starting from the beginning of the data in the datasets
-fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_CFR=0.01, pop, beta_type="different", roll_size=1, intervention=NULL){
+fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_IFR=0.01, pop, beta_type="different", roll_size=1, intervention=NULL){
   region_name=regions(C_data)[region]
   
-  phi=phi_vs_time(region, C_data, F_data, mu_CFR)
+  phi=phi_vs_time(region, C_data, F_data, mu_IFR)
   
   tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
   tau=tau_mu_CFR[1]
+  mu_CFR=tau_mu_CFR[2]
   
   phi$times=phi$times-tau
   times=phi$times
@@ -149,18 +159,19 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
   N=pop
   
   if(beta_type=="different"){
-    par=c(beta_l=0.1, beta_1=0.1, beta_2=0.1, rho=0.8)
+    par=c(beta_l=0.1, beta_1=0.1, beta_2=0.1)
   }
   else if(beta_type=="equal"){
-    par=c(beta=0.38, rho=0.55)
+    par=c(beta=0.38)
   } else if(beta_type=="time-dep"){
-    par=c(beta_b=0.38, beta_a=0.38, rho=0.55)
+    #par=c(beta_b=0.38, beta_a=0.38, rho=0.55)
+    par=c(beta_b=0.38, beta_a=0.38)
     
   }
   
   #scale on parameters is different depending on how many pars there are - fix this!
-  #ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
-  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_CFR=mu_CFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, intervention=intervention, method="L-BFGS-B", lower=c(0, 0), upper=c(1, 1))
+  #ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
+  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, intervention=intervention, mu_CFR=mu_CFR, method="L-BFGS-B", lower=c(0, 0), upper=c(1, 1))
   fit_par=ODE_fit$par
   
   return(fit_par)
@@ -169,16 +180,17 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
 
 #compartment is "A" (active cases), "F" (deaths), or "R" (recovered)
 #fit_param is output from fit_to_SEIR. If no parameters are passed, fit_to_SEIR will run
-plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_CFR=0.01, pop, beta_type="different",fit_par=NULL, compartment, roll_size=1, intervention=NULL){
- # if(length(fit_par==0)){
-  #  fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_CFR, pop, beta_type, roll_size=roll_size, intervention=intervention)
-  #}
+plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_IFR=0.01, pop, beta_type="different",fit_par=NULL, compartment, roll_size=1, intervention=NULL){
+  if(is.null(fit_par)==TRUE){
+    fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type, roll_size=roll_size, intervention=intervention)
+  }
   region_name=regions(C_data)[region]
   
-  phi=phi_vs_time(region, C_data, F_data, mu_CFR)
+  phi=phi_vs_time(region, C_data, F_data, mu_IFR)
   
   tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
   tau=tau_mu_CFR[1]
+  mu_CFR=tau_mu_CFR[2]
   
   phi$times=phi$times-tau
   times=phi$times
@@ -218,13 +230,18 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   
   
   if(beta_type=="different"){
-    fit_par=c(fit_par[1], fit_par[2], fit_par[3], fit_par[4], a=1,  
-              kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names=c("beta_1", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    fit_par=c(par[1], par[2], par[3], rho=1-mu_CFR, a=1,  
+          kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names(fit_par)=names
   } else if(beta_type=="equal"){
-    fit_par=c(fit_par[1], fit_par[2], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
-  } else if(beta_type=="time-dep"){
-    fit_par=c(fit_par[1], fit_par[2], fit_par[3], a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
-  }
+    names=c("beta", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    fit_par=c(par[1], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    names(fit_par)=names
+    } else if(beta_type=="time-dep"){
+      names=c("beta_b", "beta_a", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+      fit_par=c(par[1], par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+      names(fit_par)=names  }
   
   
   ode_soln=ode(y=S0, times, func=rhs_SEIR, par=fit_par, fit=fit, N=N, phi=phi, beta_type=beta_type, intervention=intervention)
@@ -234,13 +251,13 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   R_2=ode_soln[,"R_2"]
   F_=ode_soln[,"F_"]
   
-  sim_cases_C=I_2+I_4
+  sim_cases_C=I_2+I_4+R_2+F_
   sim_C_df=data.frame(times, sim_cases_C)
   sim_F_df=data.frame(times, F_)
   sim_R_df=data.frame(times, R_2)
   
-  if(compartment=="A"){
-    plot=ggplot(data=active_cases_df, aes(x=times, y=active_cases))+geom_point()+geom_line(data=sim_C_df, aes(x=times, y=sim_cases_C))+labs(title=region_name)
+  if(compartment=="C"){
+    plot=ggplot(data=C_df, aes(x=times, y=cases_C))+geom_point()+geom_line(data=sim_C_df, aes(x=times, y=sim_cases_C))+labs(title=region_name)
     print(plot)
   }
   else if(compartment=="F"){
