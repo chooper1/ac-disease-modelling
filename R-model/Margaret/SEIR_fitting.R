@@ -83,7 +83,7 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
 ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, times, start, fit, S0, pop, N, beta_type, intervention, mu_CFR){
   
   if(beta_type=="different"){
-    names=c("beta_1", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    names=c("beta_l", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
     par=c(par[1], par[2], par[3], rho=1-mu_CFR, a=1,  
           kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
     names(par)=names
@@ -110,6 +110,8 @@ ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, time
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))/mean(active_cases)
  # ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))
   ssq=sum(sqrt((cases_C-(total_cases))^2))/mean(cases_C)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)
+  #ssq=sum(sqrt((cases_C-(total_cases))^2))
+  
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))+sum(sqrt((cases_R-R_2)^2))
   
   return(ssq)
@@ -155,7 +157,7 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
   
   active_cases=cases_C-(cases_R+cases_F)
   
-  S0=c(S=pop, E=0, L=0, I_1=0, I_2=active_cases[1], I_3=0, I_4=0, R_1=0, R_2=cases_R[1], F_=cases_F[1])
+  S0=c(S=pop, E=0, L=0, I_1=0, I_2=cases_C[1], I_3=0, I_4=0, R_1=0, R_2=cases_R[1], F_=cases_F[1])
   N=pop
   
   if(beta_type=="different"){
@@ -225,22 +227,22 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   active_cases=cases_C-(cases_R+cases_F)
   active_cases_df=data.frame(times, active_cases)
   
-  S0=c(S=pop, E=0, L=0, I_1=0, I_2=active_cases[1], I_3=0, I_4=0, R_1=0, R_2=cases_R[1], F_=cases_F[1])
+  S0=c(S=pop, E=0, L=0, I_1=0, I_2=cases_C[1], I_3=0, I_4=0, R_1=0, R_2=cases_R[1], F_=cases_F[1])
   N=pop
   
   
   if(beta_type=="different"){
-    names=c("beta_1", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
-    fit_par=c(par[1], par[2], par[3], rho=1-mu_CFR, a=1,  
+    names=c("beta_l", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+    fit_par=c(fit_par[1], fit_par[2], fit_par[3], rho=1-mu_CFR, a=1,  
           kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
     names(fit_par)=names
   } else if(beta_type=="equal"){
     names=c("beta", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
-    fit_par=c(par[1], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+    fit_par=c(fit_par[1], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
     names(fit_par)=names
     } else if(beta_type=="time-dep"){
       names=c("beta_b", "beta_a", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
-      fit_par=c(par[1], par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+      fit_par=c(fit_par[1], fit_par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
       names(fit_par)=names  }
   
   
