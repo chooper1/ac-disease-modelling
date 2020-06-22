@@ -1,45 +1,68 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import scipy as sp
+import scipy.io as sio
 from covid19_Net import covid19_Net
+from graph_ops import matrixCM
+from covid_simulation import repeated_runs
+import datetime
+import visualization as viz
 
+
+    
 def main():
+    print(datetime.datetime.now())
     # Define parameters
     bet= [0.5,0.5,0.5]
     tau = [5, 6, 4, 8, 17, 10]
     ph = [.75, 1, 0.9]
-    init = 4
+    init = 1
     T=100
-    Npop = 4000
     sigma = [1, 1]
     ndt = 1
-    
-    # contact matrix
-    C1=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C2=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C3=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C4=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C5=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C6=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    C7=10*np.random.uniform(0,1,size=(Npop,Npop)) / Npop
-    
-    C = [C1, C2, C3, C4, C5, C6, C7]
-    num_matrices = len(C)
-    #running the covid19_Net simulation
-    [n,cu,p,ou,r0,r0t,y,x] = covid19_Net(bet,tau,ph,init,C,T,sigma,ndt,num_matrices)
+    n_runs = 30
 
-    #plotting
-    plot_p = np.zeros(T)
-    plot_cu = np.zeros(T)
-    for i in range(0,len(p)):
-        plot_p[i] = p[i][0]
-        plot_cu[i] = cu[i][0]
-    fig, axs = plt.subplots(2,1)
-    axs[0].plot(range(0,T), plot_p)
-    axs[0].set_title('Daily exposed')
-    axs[1].plot(range(0,T), plot_cu)
-    axs[1].set_title('Current cases')
-    plt.show()
+    # contact matrix   
+    C = matrixCM("graph_data_more.csv",12/7,1/420,500)
+    print(datetime.datetime.now())
+        
+    #running the covid19_Net simulation, 30 repetitions
+    C_list = [C,C,C,C,C,C,C]
+    [n,cu,p,ou,r0,r0t,y,x] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt, 7)
+
+    print(datetime.datetime.now())
+    
+    state = { 
+        'bet'    : bet,
+        'tau'    : tau,
+        'ph'     : ph,
+        'init'   : init,
+        'T'      : T, 
+        'sigma'  : sigma,
+        'ndt'    : ndt, 
+        'n_runs' : n_runs,
+        'C'      : C,
+        'n'      : n,
+        'cu'     : cu,
+        'p'      : p,
+        'ou'     : ou,
+        'r0'     : r0,
+        'r0t'    : r0t,
+        'y'      : y,
+        'x'      : x
+        }
+        
+    sio.savemat('save_data.mat',state)
+
+    print(datetime.datetime.now())
+    
+    # This code would load the data and generate the plots.
+    # results = sio.loadmat('save_data.mat')
+    # viz.gen_plots(results, "testrun")
+
+    return state
 
 
 if __name__== "__main__":
     main()
+
