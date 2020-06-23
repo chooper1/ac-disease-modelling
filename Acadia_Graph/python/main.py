@@ -15,7 +15,7 @@ def main():
     # Define parameters
     bet= [0.5,0.5,0.5]
     tau = [5, 6, 4, 8, 17, 10]
-    ph = [.75, 1, 0.9]
+    ph = [.5, 1, 1]
     init = 1
     T=100
     sigma = [1, 1]
@@ -27,8 +27,9 @@ def main():
     print(datetime.datetime.now())
         
     #running the covid19_Net simulation, 30 repetitions
-    C_list = [C,C,C,C,C,C,C]
-    [n,cu,p,ou,r0,r0t,y,x] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt, 7)
+    C_list = [C,C] #Weekday, weekend
+    C_ind = [0, 0, 0, 0, 0, 1, 1]
+    [n,cu,p,ou,r0,r0t,y,x] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt,C_ind)
 
     print(datetime.datetime.now())
     

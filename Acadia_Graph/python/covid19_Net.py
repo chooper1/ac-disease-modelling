@@ -1,71 +1,86 @@
 import numpy as np
-from distShape import distShape
+#from distShape import distShape
+from scipy.stats import norm
 
 # Simulates disease dynamics by a simple-minded individual-based algorithm,
 # which is a state-, age- and time-after-infection dependent
 # (discrete-time) stochastic process.
 
-# syntax: [N,Cu,P,Ou,Y,x] = covid19_Net(bet,tau,ph,init,Net,T,sigma)
+# syntax: [N,Cu,P,Ou,R0, R0T, Y,x] = covid19_Net(bet,tau,ph,init,Net,T,sigma)
 #
 # input:  bet    (vector) infection probabilities:
-#                  bet(1) = E
-#                  bet(2) = I
-#                  bet(3) = A
+#                  bet[0] = E
+#                  bet[1] = I
+#                  bet[2] = A
+#
 #         tau    (vector) disease-stage periods:
-#                  tau(1) = mean incubation period (time from infection to
+#                  tau[0] = mean incubation period (time from infection to
 #                                                    max. of beta(x) )
-#                  tau(2) = median time spent in E
-#                  tau(3) = median time spent in I
-#                  tau(4) = median time spent in J
-#                  tau(5) = median time spent in A
-#                  tau(6) = median time spent in H
+#                  tau[1] = median time spent in E
+#                  tau[2] = median time spent in I
+#                  tau[3] = median time spent in J
+#                  tau[4] = median time spent in A
+#                  tau[5] = median time spent in H
+#
 #         ph     (vector) branching parameters
-#                   ph(1) = symptomatic vs. asymptomatic
-#                   ph(2) = mild vs. severe (hospital)
-#                   ph(3) = recovery vs. death
+#                   ph[0] = symptomatic vs. asymptomatic
+#                   ph[1] = mild vs. severe (hospital)
+#                   ph[2] = recovery vs. death
+#
 #         init   initial number of infected (introduced into E+I_1 class)
-#         Net    network (contact) matrix (should be quadratic, symmetric
+#         Net    network (contact) matrices (should be quadratic, symmetric
 #                and zero on the main diagonal; i.e., could be represented
 #                by an upper-triangular matrix).
-#                Net(j,jj) contains the average number of contacts between
+#                Net[i][j,jj] contains the average number of contacts between
 #                individuals j and jj per day. A "contact" has to be defined
 #                in some way; for instance,
 #                  1 contact = "individuals j and jj are in the
 #                               same room for 1 hour"
-#                If the entry Net(j,jj) is not an integer, we interpret it as
-#                  Net(j, jj) = "probability that j and jj are in the
+#                If the entry Net[i][j,jj] is not an integer, we interpret it as
+#                  Net[i][j,jj] = "probability that j and jj are in the
 #                                same room for 1h at any given day"
 #                Since for a fixed day a contact either happens or it doesn't,
 #                we flip an appropriately biased coin to make the decision.
 #         T      number of days simulated
 #         sigma  (vector)  shape paremters
-#                  sigma(1)  beta
-#                  sigma(2)  mu
+#                  sigma[0]  beta
+#                  sigma[1]  mu
+#         ndt    number of timesteps per day
+#         C_ind  indices for each day (to select between matrices)
 #
 # output: N      (Tx9 matrix) daily incidences
-#                   N(:,1) =  newly infected
-#                   N(:,2) =  new cases
-#                   N(:,3) =  new asymptomatic cases
-#                   N(:,4) =  new deaths
-#                   N(:,5) =  newly recovered
+#                   N[:,0] =  newly infected
+#                   N[:,1] =  new symptomatic cases
+#                   N[:,2] =  new asymptomatic cases
+#                   N[:,3] =  number of individuals new in compartment J
+#                   N[:,4] =  number of new hospililizations 
+#                   N[:,5] =  number of patients with mild symptoms newly recovered 
+#                   N[:,6] =  number of new deaths 
+#                   N[:,7] =  number of individuals new in compartment B
+#                   N[:,8] =  number of hospiltalized patients newly recovered 
 #
 #         Cu     (Tx5 matrix) cumulative incidences
-#                   Cu(:,1) =  total infected
-#                   Cu(:,2) =  total symptomatic cases
-#                   Cu(:,3) =  total asymptomatic cases
+#                   Cu[:,0] =  total infected
+#                   Cu[:,1] =  total symptomatic cases
+#                   Cu[:,2] =  total asymptomatic cases
+#                   Cu[:,3] =  total mild cases
+#                   Cu[:,4] =  total hospililizations 
 #
-#         P      (Tx5 matrix) daily prevalences
-#                   P(:,1) =  E exposed (compartments E and I_1 of our compartment diagram)
-#                   P(:,2) =  I symptomatic infected (compartment I_2)
-#                   P(:,3) =  A asymptomatic infected
-#                   P(:,4) =  J patients with mild symptoms
-#                   P(:,5) =  H patients with severe symptoms in hospital
-#                   P(:,6) =  S susceptibles
+#         P      (Tx6 matrix) daily prevalences
+#                   P[:,0] =  E exposed (compartments E and I_1 of our compartment diagram)
+#                   P[:,1] =  I symptomatic infected (compartment I_2)
+#                   P[:,2] =  A asymptomatic infected
+#                   P[:,3] =  J patients with mild symptoms
+#                   P[:,4] =  H patients with severe symptoms in hospital
+#                   P[:,5] =  S susceptibles
 #
 #         Ou     (Tx3 matrix) outcomes
-#                   Ou(:,1) = R  total previously symptomatic recovered
-#                   Ou(:,2) = F  total fatalities
-#                   Ou(:,3) = B  total previously asymptomatic recovered
+#                   Ou[:,0] = R  total previously symptomatic recovered
+#                   Ou[:,1] = F  total fatalities
+#                   Ou[:,2] = B  total previously asymptomatic recovered
+#
+#         R0     to do
+#         R0T    to do
 #
 #         Y      final state (see "variables")
 #         x      final time-after-infection
@@ -84,7 +99,7 @@ from distShape import distShape
 #            a    (Npop x 1 vector) individual age       (index j)
 #            x    (Npop x 1 vector) time after infection (index k)
 
-def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
+def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind):
 
     Npop = NetGrouped[0].shape[0];
     # adjust things to account for a time step that's different from "one day"
@@ -102,8 +117,8 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
     #Z = np.zeros((Npop,T))
     #y = np.zeros((Npop,T))
 
-    N = np.zeros((T,5))
-    Cu = np.zeros((T,3))
+    N = np.zeros((T,9))
+    Cu = np.zeros((T,5))
     P = np.zeros((T,6))
     Ou = np.zeros((T,3))
 
@@ -123,9 +138,12 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
     #R0 =cell(1,2); #### Check this
     R0t = np.zeros((T,3))
     
+    num_matrices = len(C_ind)
+    rand_shift = np.random.randint(0, num_matrices)
+    
     for k in range(0,T):
-        NetInd = k%7
-        Net = NetGrouped[NetInd]
+        NetInd = (k+rand_shift)%num_matrices
+        Net = NetGrouped[C_ind[NetInd]]
     
         #fix R0Theory
         #avecontacts = np.mean(np.sum(Net, axis=1))
@@ -193,6 +211,8 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
         hospind = iind[expr_ind]
         Y[hospind] = 3
         
+        N[k][3] = len(mildind)
+        N[k][4] = len(hospind)
 
         # J -> R
         randseed = np.random.uniform(0,1,size=(len(jind),1))
@@ -200,6 +220,8 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
         expr_ind = np.nonzero(expr)[0]
         rind = jind[expr_ind]
         Y[rind] = 6
+        
+        N[k][5] = len(rind)
 
         # H -> R and H -> F
         randseed = np.random.uniform(0,1,size=(len(hind),2))
@@ -213,8 +235,8 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
         dind = hind[expr_ind]
         Y[dind] = 7
 
-        N[k][4] = len(hrind) + len(rind)
-        N[k][3] = len(dind)
+        N[k][8] = len(hrind)
+        N[k][6] = len(dind)
 
         # A -> B
         randseed = np.random.uniform(0,1,size=(len(aind),1))
@@ -222,6 +244,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
         expr_ind = np.nonzero(expr)[0]
         bind = aind[expr_ind]
         Y[bind] = 8
+        N[k][7] = len(bind)
                 
         P[k][5] += np.count_nonzero(Y == 0)
         P[k][0] += np.count_nonzero(Y == 1)
@@ -234,9 +257,9 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,nmatrices):
         Ou[k][2] += np.count_nonzero(Y == 8)
         
         if k > 1:
-             Cu[k][:] = Cu[k-1][:] + N[k][:3]
+             Cu[k][0:5] = Cu[k-1][0:5] + N[k][0:5]
         else:
-             Cu[k][:] = N[k][:3]
+             Cu[k][0:5] = N[k][0:5]
 
         #Fix R0 and R0t!!!
 
@@ -267,10 +290,18 @@ def beta(x,n,sigma,bet,tau):
     ind_1 = np.nonzero(n == 1)[0]
     ind_2 = np.nonzero(n == 2)[0]
     ind_3 = np.nonzero(n == 3)[0]
-
-    b_1 = bet[0]*distShape(x,ind_1,tau[0],s,1)
-    b_2 = bet[1]*distShape(x,ind_2,tau[0],s,1)
-    b_3 = bet[2]*distShape(x,ind_3,tau[0],s,1)
+    
+    b_1 = np.zeros((len(x),1))
+    b_2 = np.zeros((len(x),1))
+    b_3 = np.zeros((len(x),1))
+     
+    #b_1 = bet[0]*distShape(x,ind_1,tau[0],s,1)
+    #b_2 = bet[1]*distShape(x,ind_2,tau[0],s,1)
+    #b_3 = bet[2]*distShape(x,ind_3,tau[0],s,1)
+    
+    b_1[ind_1] = bet[0]*norm.pdf((x[ind_1] - tau[0]) / s)/ s
+    b_2[ind_2] = bet[1]*norm.pdf((x[ind_2] - tau[0]) / s)/ s
+    b_3[ind_3] = bet[2]*norm.pdf((x[ind_3] - tau[0]) / s)/ s
 
     b = b_1 + b_2 + b_3;
     return b
@@ -282,15 +313,20 @@ def mu(x,n,sigma,tau,dt):
     taux5 = taux3 + tau[4]
     taux6 = taux3 + tau[5]
     if n == 1:    # E->I and E->A
-       m = dt*distShape(x,range(0,len(x)),tau[1],s,2)
+       #m = dt*distShape(x,range(0,len(x)),tau[1],s,2)
+       m = dt*(1+np.tanh(s*(x-tau[1])))/2
     elif n == 2:  # I->J and I->H
-       m = dt*distShape(x,range(0,len(x)),taux3,s,2)
+       #m = dt*distShape(x,range(0,len(x)),taux3,s,2)
+       m = dt*(1+np.tanh(s*(x-taux3)))/2
     elif n == 3:  # A->B
-       m = dt*distShape(x,range(0,len(x)),taux4,s,2)
+       #m = dt*distShape(x,range(0,len(x)),taux4,s,2)
+       m = dt*(1+np.tanh(s*(x-taux4)))/2
     elif n == 4:  # J->R
-       m = dt*distShape(x,range(0,len(x)),taux5,s,2)
+       #m = dt*distShape(x,range(0,len(x)),taux5,s,2)
+       m = dt*(1+np.tanh(s*(x-taux5)))/2
     elif n == 5:  # H->R and H->F
-       m = dt*distShape(x,range(0,len(x)),taux6,s,2)
+       #m = dt*distShape(x,range(0,len(x)),taux6,s,2)
+       m = dt*(1+np.tanh(s*(x-taux6)))/2
     else:
        m = dt*np.ones(len(x))
     return m
