@@ -173,8 +173,10 @@ fit_to_SEIR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_
   
   #scale on parameters is different depending on how many pars there are - fix this!
   #ODE_fit=optim(par=par, fn=ssq_SEIR, region=region, active_cases=active_cases, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, control=list(parscale=c(1,1, 1, 1, 1)))
-  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, intervention=intervention, mu_CFR=mu_CFR, method="L-BFGS-B", lower=c(0, 0), upper=c(1, 1))
-  fit_par=ODE_fit$par
+ # ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, intervention=intervention, mu_CFR=mu_CFR, method="L-BFGS-B", lower=c(0, 0), upper=c(1, 1))
+  ODE_fit=optim(par=par, fn=ssq_SEIR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, cases_R=cases_R, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, S0=S0, pop=pop, N=N, beta_type=beta_type, intervention=intervention, mu_CFR=mu_CFR)
+  
+   fit_par=ODE_fit$par
   
   return(fit_par)
   
@@ -277,6 +279,9 @@ R0=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=N
   if(is.null(fit_par)==TRUE){
     fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type, roll_size=roll_size, intervention=intervention)
   }
+  
+  tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
+  mu_CFR=tau_mu_CFR[2]
   
   phi=phi_vs_time(region, C_data, F_data, mu_IFR)
   phi=phi$ratios[1]

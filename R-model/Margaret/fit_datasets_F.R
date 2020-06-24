@@ -131,7 +131,12 @@ plot_cases_scaled=function(region, C_data, F_data, factor=0.05){
 
 #plots the shifted and scaled fitted curves to see how good the tau and mu_CFR fit is
 #par is returned from fit_tau_mu_CFR
-plot_shifted_scaled_cases=function(par, region, C_data, F_data){
+plot_shifted_scaled_cases=function(par=NULL, region, C_data=JHU_C_data, F_data=JHU_F_data){
+  if(is.null(par)==TRUE){
+    par=fit_tau_mu_CFR(region, C_data, F_data)
+    }
+
+  
   regions=regions(C_data)
   
   tau=par[1]
@@ -235,7 +240,7 @@ plot_phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=.
 }
 
 #returns an estimate for total number of people infected in a region to date, accounting for underreporting
-total_infected=function(region, C_data, F_data, mu_CFR=0.01){
+total_infected=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
   regions=regions(C_data)
   
   df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
@@ -262,5 +267,37 @@ total_infected=function(region, C_data, F_data, mu_CFR=0.01){
 
   total_cases=sum(true_new_cases)+pre_start_cases
   
+  print(regions[region])
+
   return(total_cases)
 }
+
+total_infected_multiple_regions=function(C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
+  #removes columns for countries with no cases
+  few_cases=c()
+  for(x in seq(1, ncol(C_data))){
+    cases=as.integer(C_data[5:nrow(C_data), x])
+    cases=cases[!is.na(cases)]
+    if(cases[length(cases)]<=10){
+      few_cases=append(few_cases, x)
+    }
+  }
+  C_data=subset(C_data, select=-c(few_cases))
+  F_data=subset(F_data, select=-c(few_cases))
+  
+  #generates labels
+  regions=regions(C_data)
+  
+  totals=c()
+  
+  for(x in seq(1, ncol(C_data))){
+    print(x)
+    total=total_infected(region=x, C_data=C_data, F_data=F_data, mu_CFR=mu_CFR)
+    totals=append(totals, total)
+    print(total)
+  }
+  
+  return(totals)
+}
+  
+pops=c(Afghanistan=37170000)
