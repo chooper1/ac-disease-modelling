@@ -1,0 +1,10 @@
+{
+    "types" : "bands",
+    "mean" : true,
+    "median" : true,
+    "plot_lines_color" : "#59D8E1",
+    "shaded_region_colors_perc90" : "#ED3A8E",
+    "shaded_region_colors_perc50" : "#46AB85",
+    "mean_lines_color" : "black",
+    "median_lines_color" : "#D5E159"
+}
