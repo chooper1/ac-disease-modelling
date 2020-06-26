@@ -81,7 +81,7 @@ fit_multiple_F=function(data){
   return(paramdf)
 }
 
-fit_tau_mu_CFR=function(region, C_data, F_data){
+fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
   
   #estimates paramters for fatality data (discarding days before outbreak)
   F_parest=fit_param_F(region, F_data)
@@ -110,7 +110,7 @@ fit_tau_mu_CFR=function(region, C_data, F_data){
 }
 
 #plots the unfitted case data scaled down to visualize the curves in comparison to one another
-plot_cases_scaled=function(region, C_data, F_data, factor=0.05){
+plot_cases_scaled=function(region, C_data=JHU_C_data, F_data=JHU_F_data, factor=0.05){
   
   regions=regions(C_data)
   
@@ -131,7 +131,7 @@ plot_cases_scaled=function(region, C_data, F_data, factor=0.05){
 
 #plots the shifted and scaled fitted curves to see how good the tau and mu_CFR fit is
 #par is returned from fit_tau_mu_CFR
-plot_shifted_scaled_cases=function(par=NULL, region, C_data=JHU_C_data, F_data=JHU_F_data){
+plot_shifted_scaled_cases=function(region, par=NULL, C_data=JHU_C_data, F_data=JHU_F_data){
   if(is.null(par)==TRUE){
     par=fit_tau_mu_CFR(region, C_data, F_data)
     }
@@ -171,7 +171,7 @@ plot_shifted_scaled_cases=function(par=NULL, region, C_data=JHU_C_data, F_data=J
 
 #for this function, factor is the estimate for mu_CFR returned from fit_tau_mu_CFR, and mu_CFR is a sequence of guesses for the true mu_CFR
 #function plots the proportion of cases reported vs. actual mu_CFR
-plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data, F_data){
+plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data=JHU_C_data, F_data=JHU_F_data){
   
   regions=regions(C_data)
   ratios=c()
@@ -191,7 +191,7 @@ plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data, F_data){
 }
 
 #returns the "underreporting ratio" vs time
-phi_vs_time=function(region, C_data, F_data, mu_CFR=0.01){
+phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
 
   parest=fit_tau_mu_CFR(region, C_data, F_data)
   
@@ -217,6 +217,7 @@ phi_vs_time=function(region, C_data, F_data, mu_CFR=0.01){
   F_df=generate_F(times, init, start, F_parest)
   
   #starts calculating the ratio at the point where both C and F become nonzero (should be very close together, since they have been shifted)
+  #use the fit instead of the data?
   start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
   
   #removes the zeroes before "start"
@@ -300,4 +301,3 @@ total_infected_multiple_regions=function(C_data=JHU_C_data, F_data=JHU_F_data, m
   return(totals)
 }
   
-pops=c(Afghanistan=37170000)

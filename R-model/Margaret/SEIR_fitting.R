@@ -224,7 +224,7 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   cases_R=cases_R[!is.na(cases_R)]
   cases_R=c(cases_R[start:length(cases_R)])
   cases_R=rollmean(cases_R, roll_size)
-#  R_df=data.frame(times, cases_R)
+  R_df=data.frame(times, cases_R)
   
  # active_cases=cases_C-(cases_R+cases_F)
   #active_cases_df=data.frame(times, active_cases)
