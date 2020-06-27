@@ -6,30 +6,30 @@ import datetime
 def repeated_runs(N, bet,tau,ph,init,C,T,sigma,ndt,nmatrices):
     Npop = C[0].shape[0]
     
-    ns = np.zeros((N,T,5))
-    cus = np.zeros((N,T,3))
+    ns = np.zeros((N,T,9))
+    cus = np.zeros((N,T,5))
     ps = np.zeros((N,T,6))
     ous = np.zeros((N,T,3))
-    r0s = np.zeros((N,T,1))
     r0ts = np.zeros((N,T,3))
+    r0infs = np.zeros((N,Npop))
     ys = np.zeros((N,Npop,1))
     xs = np.zeros((N,Npop,1))
     
     for i in range(0,N):
         print(i)
         print(datetime.datetime.now())
-        [n,cu,p,ou,r0,r0t,y,x] = covid19_Net(bet,tau,ph,init,C,T,sigma,ndt,nmatrices)
+        [n,cu,p,ou,r0t,r0inf,rr,y,x] = covid19_Net(bet,tau,ph,init,C,T,sigma,ndt,nmatrices)
         print(datetime.datetime.now())
         ns[i,:,:]   = n
         cus[i,:,:]  = cu
         ps[i,:,:]   = p
         ous[i,:,:]  = ou
-        r0s[i,:,:]  = r0
         r0ts[i,:,:] = r0t
+        r0infs[i,:] = r0inf
         ys[i,:,:]   = y
         xs[i,:,:]   = x
         
-    return [ns,cus,ps,ous,r0s,r0ts,ys,xs]
+    return [ns,cus,ps,ous,r0ts,r0infs,ys,xs]
     
     
 
