@@ -94,7 +94,10 @@ def covid19_R0(bet,tau,ph,Net,T,sigma,R0t,N,x,RR):
     Xjj = np.ones((Npop,1))*x.T
     S[RR == 1] = Xj[RR == 1] - Xjj[RR == 1]
     totalinf = np.sum(S>0)
-    taud = np.sum(S) / totalinf
+    if totalinf == 0:
+        taud = 0
+    else:
+        taud = np.sum(S) / totalinf
     ####################################
     #
     # Compute R0 according to the theory
@@ -118,7 +121,8 @@ def covid19_R0(bet,tau,ph,Net,T,sigma,R0t,N,x,RR):
     Norms = [meancontacts,lambdaC,maxcontacts]
 
     d = round(taud)
-    d = d.astype(np.int64)
+    if (isinstance(d, int) == False):
+        d = d.astype(np.int64)
     for i in range(d, T-d):
         if (N[i-d,1]+N[i-d,2] > 0):
             M[i] = (N[i,1]+N[i,2])/(N[i-d,1]+N[i-d,2])
