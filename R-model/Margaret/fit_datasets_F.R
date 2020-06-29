@@ -242,7 +242,7 @@ plot_phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=.
 
 #returns an estimate for total number of people infected in a region to date, accounting for underreporting
 total_infected=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
-  regions=regions(C_data)
+  region_names=regions(C_data)
   
   df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   
@@ -254,9 +254,9 @@ total_infected=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.0
   
   #starts calculating the ratio at the point where both C and F become nonzero (should be very close together, since they have been shifted)
   start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
-  pre_start_cases=cases_C[start-1]
-  cases_C=c(cases_C[start:length(cases_C)])
-  
+ # pre_start_cases=cases_C[start-1]
+  #cases_C=c(cases_C[start:length(cases_C)])
+  a=c(cases_C[1:start-1])
   
   new_cases=c(cases_C[1])
   for(x in c(2:length(cases_C))){
@@ -264,11 +264,15 @@ total_infected=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.0
     new_cases=append(new_cases, new_case)
   }
   
-  true_new_cases=new_cases*df$ratios
-
-  total_cases=sum(true_new_cases)+pre_start_cases
+  ratios=df$ratios
+  phi_before=c(rep(mean(ratios), start-1))
+  ratios=append(phi_before, ratios)
   
-  print(regions[region])
+  true_new_cases=new_cases*ratios
+
+  total_cases=sum(true_new_cases)
+  
+  print(region_names[region])
 
   return(total_cases)
 }
@@ -301,3 +305,37 @@ total_infected_multiple_regions=function(C_data=JHU_C_data, F_data=JHU_F_data, m
   return(totals)
 }
   
+Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=9){
+  
+  region_names=regions(C_data)
+  
+  df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
+  
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  
+  start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
+  ratios=df$ratios
+  phi_before=c(rep(mean(ratios), start-1))
+  ratios=append(phi_before, ratios)
+  
+  new_cases=c(cases_C[1])
+  for(x in c(2:length(cases_C))){
+    new_case=cases_C[x]-cases_C[x-1]
+    new_cases=append(new_cases, new_case)
+  }
+  
+  Rt=c()
+  for(x in c((tau_SI+1):length(cases_C))){
+    Rt_x=(ratios[x]*new_cases[x])/(ratios[x-tau_SI]*new_cases[x-tau_SI])
+    Rt=append(Rt, Rt_x)
+  }
+  
+  times=c((tau_SI+1):length(cases_C))
+  Rt_df=data.frame(times, Rt)
+  
+  return(Rt_df)
+}
