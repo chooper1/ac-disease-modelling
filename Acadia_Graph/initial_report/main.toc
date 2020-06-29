@@ -1,0 +1,8 @@
+\select@language {english}
+\contentsline {section}{\numberline {1}intro}{1}{section.1}
+\contentsline {section}{\numberline {2}More details on our agent-based model}{2}{section.2}
+\contentsline {section}{\numberline {3}Some preliminary observations from our model simulations}{2}{section.3}
+\contentsline {section}{\numberline {4}Future plans}{2}{section.4}
+\contentsline {section}{\numberline {5}Questions for the COVID-19 Task Force}{2}{section.5}
+\contentsline {section}{Acknowledgments}{2}{section*.1}
+\contentsfinish 
