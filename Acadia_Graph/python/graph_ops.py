@@ -5,6 +5,49 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import Series
+
+def loadEdgeList(filename):
+    data = pd.read_csv(filename)
+    return data
+    
+def calculateClassSizes(edge_list):
+    # Get number of edges for each class
+    class_data = edge_list[edge_list['Type'] == 'C']
+    counts = class_data.groupby('Info', as_index=False).count()
+    
+    # Solve quadratic equation n^2 - n - 2*edges = 0
+    counts['Size'] = (np.sqrt(counts['Type']*8+1).astype(int)+1)//2
+    return counts[['Info','Size']].copy()    
+
+def edgesAsMatrices(edge_list):
+    # Get count of number of repeats of personA->person
+    counts = edge_list.groupby(['PersonA','PersonB','Type'], as_index=False).count()
+
+    highest_id = max(max(edge_list['PersonA']), max(edge_list['PersonB']))
+    c_matrix = np.zeros((highest_id+1,highest_id+1))
+    m_matrix = c_matrix.copy()
+    r_matrix = c_matrix.copy()
+    s_matrix = c_matrix.copy()
+
+    c_counts = counts[counts['Type'] == 'C']
+    c_matrix[c_counts['PersonA'].to_numpy(), c_counts['PersonB'].to_numpy()] = c_counts['Info'].to_numpy()
+    c_matrix = c_matrix + np.transpose(c_matrix)
+
+    m_counts = counts[counts['Type'] == 'M']
+    m_matrix[m_counts['PersonA'].to_numpy(), m_counts['PersonB'].to_numpy()] = m_counts['Info'].to_numpy()
+    m_matrix = m_matrix + np.transpose(m_matrix)
+
+    r_counts = counts[counts['Type'] == 'R']
+    r_matrix[r_counts['PersonA'].to_numpy(), r_counts['PersonB'].to_numpy()] = r_counts['Info'].to_numpy()
+    r_matrix = r_matrix + np.transpose(r_matrix)
+
+    s_counts = counts[counts['Type'] == 'S']
+    s_matrix[s_counts['PersonA'].to_numpy(), s_counts['PersonB'].to_numpy()] = s_counts['Info'].to_numpy()
+    s_matrix = s_matrix + np.transpose(s_matrix)
+    
+    return c_matrix, m_matrix, r_matrix, s_matrix
+
+
 #Here's a change
 #matrix for class and class tramission inside the same building:
 def matrixCM(filename,C,M,classlimit):

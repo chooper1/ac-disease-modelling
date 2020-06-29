@@ -45,18 +45,18 @@ def gen_plots(state, prefix,type ,mean ,median,plot_lines_color,shaded_region_co
     x = range(0,state['T'][0][0])
     
     n = state['n']    
-    fig,panels = plt.subplots(3,2, figsize=(6.5,9))
-    for i in range(0,5):
-        plot_curves(panels[i//2][i%2], x, n[:,:,i], "n[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
+    fig,panels = plt.subplots(3,3, figsize=(6.5,9))
+    for i in range(0,9):
+        plot_curves(panels[i//3][i%3], x, n[:,:,i], "n[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
     fig.tight_layout()
     fig.savefig("%s_n.png" % (prefix))
     
 
     # plot for cu
     cu = state['cu']    
-    fig,panels = plt.subplots(3, figsize=(6.5,9))
-    for i in range(0,3):
-        plot_curves(panels[i], x, cu[:,:,i], "cu[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
+    fig,panels = plt.subplots(3,2, figsize=(6.5,9))
+    for i in range(0,5):
+        plot_curves(panels[i//2][i%2], x, cu[:,:,i], "cu[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
     
     fig.tight_layout()
     fig.savefig("%s_cu.png" % (prefix))
@@ -80,11 +80,13 @@ def gen_plots(state, prefix,type ,mean ,median,plot_lines_color,shaded_region_co
     fig.tight_layout()
     fig.savefig("%s_ou.png" % (prefix))
 
-    r0 = state['r0']    
-    fig,panels = plt.subplots(1, figsize=(6.5,9))
-    plot_curves(panels, x, r0[:,:,0], "r0[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
-    fig.tight_layout()
-    fig.savefig("%s_r0.png" % (prefix))
+    # DC:  r0 no longer in outputs of Covid19_Net.  Revising data storage for
+    # Coleman's Covid_R0 function outputs before re-adding this
+    # r0 = state['r0']    
+    # fig,panels = plt.subplots(1, figsize=(6.5,9))
+    # plot_curves(panels, x, r0[:,:,0], "r0[%d]" % i,type,mean,median,plot_lines_color,shaded_region_colors_perc90,shaded_region_colors_perc50,mean_lines_color,median_lines_color)
+    # fig.tight_layout()
+    # fig.savefig("%s_r0.png" % (prefix))
     
     r0t = state['r0t']    
     fig,panels = plt.subplots(3, figsize=(6.5,9))
