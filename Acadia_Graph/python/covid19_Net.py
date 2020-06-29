@@ -86,16 +86,16 @@ import math
 #                   Ou[:,1] = F  total fatalities
 #                   Ou[:,2] = B  total previously asymptomatic recovered
 #
-#         R0t  (T x 3 matrix) 
+#         R0t  (T x 3 matrix)
 #                               R0t[:,0] = Rt (effective R0 from simulation)
-#                               R0t[:,1] = total number of infections caused 
-#                                          by cohort whose infectious period 
+#                               R0t[:,1] = total number of infections caused
+#                                          by cohort whose infectious period
 #                                          ended on day t
-#                               R0t[:,2] = size of that cohort 
+#                               R0t[:,2] = size of that cohort
 #         Rinf  (Npop x 1 vector) 
 #                               Rinf[j] = number of infections caused by individual j
 #         RR  (Npop x Npop matrix of zeros and ones)
-#                               RR[j,jj] = 1  <=>  indiv. j infected indiv. jj   
+#                               RR[j,jj] = 1  <=>  indiv. j infected indiv. jj
 #
 #         Y      final state (see "variables")
 #         x      final time-after-infection
@@ -131,7 +131,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
     Cu = np.zeros((T,5))
     P = np.zeros((T,6))
     Ou = np.zeros((T,3))
-    
+
     #timer and temporary storage for implementing testing policies
     timers = np.zeros((Npop,1))
 
@@ -154,7 +154,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
     for k in range(0,T):
         NetInd = (k+rand_shift)%num_matrices
         Net = NetGrouped[C_ind[NetInd]]
-        
+
         #testing policies
         if test == 1: #simple q_len-day quarantine
             timer = timers > 0
@@ -170,29 +170,33 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
                 Net[:, timer] = 0
 
         sig = sigma
-        betas = beta(x,Y,sig,bet,tau)
-        infind_ = betas > 10**(-8);
-        b = betas[infind_]
-        infind = np.nonzero(infind_)
-        infind = infind[0]
+        infind_ = beta(x,Y,sig,bet,tau) > 10**(-6)
+        
+        b = beta(x[infind_].reshape((np.sum(infind_),1)),Y[infind_].reshape((np.sum(infind_),1)),sig,bet,tau)
+        infind = np.nonzero(infind_)[0]
 
         if len(b) > 0:
             infectives = len(infind) # number of infective infectives
-            #cNet = np.floor(Net[infind][:]) + np.floor(Net[infind][:]-np.floor(Net[infind][:]))
-            cNet = np.floor(Net[infind][:]) + np.floor(Net[infind][:]-np.floor(Net[infind][:])+np.random.uniform(0,1,size=(infectives,Npop)))
-            cNet = cNet.astype(np.int64)
-            B = np.repeat(b[:,np.newaxis], Npop, axis=1)
+            cNet = Net[infind,:]
+            B = b*np.ones((infectives,Npop))
             YY = np.ones((infectives,1)) * np.transpose(Y)
             ZZ = np.zeros((infectives,Npop))
             yy = np.zeros((infectives,Npop))
+            
+            randseed = np.random.uniform(0,1,size=(infectives,Npop))
+            Ind_ = cNet > 0
+            Ind = np.nonzero(Ind_)
+            BB = np.multiply(np.log(1-B), cNet)
+            BB = 1-np.exp(BB)
+            expr = np.zeros((infectives,Npop), dtype=bool)
+            expr[Ind] = expr[Ind] + np.logical_and(randseed[Ind] < BB[Ind], YY[Ind] + ZZ[Ind] == 0)#.reshape((infectives,Npop))
 
-            for n in range(1, np.max(cNet)+1):
-                randseed = np.random.uniform(0,1,size=(infectives,Npop))
-                randindex = np.logical_and(randseed < B, YY == 0)
-                expr = np.logical_and(randindex, cNet >= n)
-                ZZ[expr] = 1
-                yy[expr] = 1
-                
+            Newinfectionsind = np.zeros((infectives,Npop), dtype=bool)
+            Newinfectionsind[expr] = Ind_[expr]
+            if np.sum(Newinfectionsind) != 0:
+                ZZ[Newinfectionsind] = 1
+                yy[Newinfectionsind] = 1
+
             # update the matrix of who infected whom
             RR[infind,:] = RR[infind,:] + ZZ
             ZZ_sum = np.sum(ZZ,0)
@@ -220,7 +224,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
 
         N[k][1] = len(symptind)
         N[k][2] = len(asymptind)
-        
+
 
         # I -> J and I-> H
         randseed = np.random.uniform(0,1,size=(len(iind),2))
@@ -283,7 +287,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
         else:
              Cu[k][0:5] = N[k][0:5]
 
-        R0inf = np.sum(RR,1) 
+        R0inf = np.sum(RR,1)
         if k>cohortlength:
             cohort_ind = (x==cohortlength)
             R0num = np.sum(R0inf[cohort_ind[:,0]])
@@ -293,15 +297,15 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
                 R0t[k,0] = R0time
             R0t[k, 1] = R0num
             R0t[k, 2] = R0den
-            
+
         #testing policies
         if test == 1: #simple q_len-day quarantine
-            #increment timers 
+            #increment timers
             timer = timers > 0
             timer = timer[:,0]
             timers[timer] = timers[timer] + 1
             #print(timers[timer])
-            #remove people from isolation when they leave 
+            #remove people from isolation when they leave
             timer = timers > q_len
             timer = timer[:,0]
             timers[timer] = 0
@@ -313,7 +317,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
             #remove from quarantine when people leave the symptomatic bucket
             timers[mildind] = 0
             timers[hospind] = 0
-            
+
         x[x > -1] += dt
 
     return [N,Cu,P,Ou,R0t,R0inf,RR,Y,x]
@@ -332,10 +336,13 @@ def beta(x,n,sigma,bet,tau):
     b_1 = np.zeros((len(x),1))
     b_2 = np.zeros((len(x),1))
     b_3 = np.zeros((len(x),1))
-
-    b_1[ind_1] = bet[0]*norm.pdf((x[ind_1] - tau[0]) / s)/ s
-    b_2[ind_2] = bet[1]*norm.pdf((x[ind_2] - tau[0]) / s)/ s
-    b_3[ind_3] = bet[2]*norm.pdf((x[ind_3] - tau[0]) / s)/ s
+     
+    if len(ind_1) != 0:
+        b_1[ind_1] = bet[0]*norm.pdf((x[ind_1] - tau[0]) / s)/ s
+    if len(ind_2) != 0:
+        b_2[ind_2] = bet[1]*norm.pdf((x[ind_2] - tau[0]) / s)/ s
+    if len(ind_3) != 0:
+        b_3[ind_3] = bet[2]*norm.pdf((x[ind_3] - tau[0]) / s)/ s
 
     b = b_1 + b_2 + b_3;
     return b
