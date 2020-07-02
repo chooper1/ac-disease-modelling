@@ -1,5 +1,4 @@
 library("deSolve")
-library("zoo")
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
 source("fit_datasets_F.R")
 
@@ -275,7 +274,7 @@ plot_SEIR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_
   
 }
 
-R0=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=NULL, beta_type="time-dep", intervention=NULL){
+R0_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=NULL, beta_type="time-dep", intervention=NULL){
   if(is.null(fit_par)==TRUE){
     fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type, roll_size=roll_size, intervention=intervention)
   }
@@ -284,7 +283,7 @@ R0=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=N
   mu_CFR=tau_mu_CFR[2]
   
   phi=phi_vs_time(region, C_data, F_data, mu_IFR)
-  phi=phi$ratios[1]
+  phi=mean(phi$ratios)
   
   if(beta_type=="different"){
     names=c("beta_l", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2", "phi")
@@ -306,4 +305,53 @@ R0=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=N
     list(R0)
   })
   
+}
+
+#right now only set up to work for 
+Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=NULL, intervention){
+  
+  if(is.null(fit_par)==TRUE){
+    fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type="time-dep", roll_size=roll_size, intervention=intervention)
+  }
+  
+  tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
+  tau=tau_mu_CFR[1]
+  mu_CFR=tau_mu_CFR[2]
+  
+  names=c("beta_b", "beta_a", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
+  fit_par=c(fit_par[1], fit_par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
+  names(fit_par)=names  
+  
+
+  
+  phi=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
+  phi$times=phi$times-tau
+ 
+  fit=lm(ratios~poly(times, 4, raw=TRUE), data=phi)
+  
+  Rt_list=c()
+  with(as.list(fit_par), {
+    for(t in (1:(length(phi$times)-floor(1/kappa)))){
+        t2=t+1/kappa
+       if(t2>=phi$times[1]){
+        newdata=data.frame(times=as.numeric(t2))
+        phi2=as.numeric(predict(fit, newdata=newdata))
+      }
+      else{
+        phi2=mean(phi$ratios)
+      }
+      
+      if(t<intervention){
+        Rt=beta_b/kappa+(1/phi2)*beta_b/mu_2+(1-phi2)*beta_b/(mu_2+eta)
+        Rt_list=append(Rt_list, Rt)
+      }else{
+        Rt=beta_a/kappa+(1/phi2)*beta_a/mu_2+(1-phi2)*beta_a/(mu_2+eta)
+        Rt_list=append(Rt_list, Rt)
+        
+      }
+    }
+      
+  })
+
+return(Rt_list)
 }

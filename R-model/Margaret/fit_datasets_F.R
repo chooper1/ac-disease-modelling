@@ -1,4 +1,5 @@
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
+library("zoo")
 source("parameter_fitting_F.R")
 
 
@@ -339,3 +340,34 @@ Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_
   
   return(Rt_df)
 }
+
+
+plot_Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=9, roll_size=1){
+  
+  region_name=regions(C_data)[region]
+  
+  Rt_df=Rt_data(region, C_data, F_data, mu_CFR, tau_SI)
+  
+  remove=c()
+  for(x in c(1:length(Rt_df[,1]))){
+    if(is.na(Rt_df[x, 2])==TRUE){
+      remove=append(remove, x)
+    }
+    else if(is.infinite(Rt_df[x, 2])==TRUE){
+      remove=append(remove, x)
+    }
+  }
+
+  Rt_df=Rt_df[-c(remove),]
+
+  times=rollmean(Rt_df$times, roll_size)
+  Rt=rollmean(Rt_df$Rt, roll_size)
+  
+  Rt_df=data.frame(times, Rt)
+  
+  plot=ggplot(data=Rt_df, aes(x=times, y=Rt))+geom_line()+labs(title=region_name)
+  print(plot)
+  
+  
+}
+
