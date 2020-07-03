@@ -30,7 +30,7 @@ def main():
     config = json.load(json_file)
     json_file.close()
 
-    viz.gen_plots(mat,sys.argv[2],type =config['types'],mean=config['mean'],median=config['median'],plot_lines_color=config['plot_lines_color'],shaded_region_colors_perc90=config['shaded_region_colors_perc90'],shaded_region_colors_perc50=config['shaded_region_colors_perc50'],mean_lines_color=config['mean_lines_color'],median_lines_color=config['median_lines_color'])
+    viz.gen_plots(mat,sys.argv[2],config)
 
 
 if __name__== "__main__":
