@@ -1,0 +1,17 @@
+{
+    "bet" : [0.0080, 0.0080, 0.0080],
+    "tau" : [5.35, 5.2, 5.0, 12.0, 12.0, 10.0],
+    "ph" : [.5, 1.0, 1.0],
+    "init" : 1,
+    "T" : 100
+    "sigma" : [1.0, 1.0],
+    "ndt" : 1,
+    "n_runs" : 3,
+    "mask_efficacy" : 0.44,
+    "mask_compliance" : 1.0,
+    "scalarC" : 12/7,
+    "scalarM" : 1/420,
+    "scalarR" : 1/4,
+    "scalarS" : 1.0,
+    "maxClassSize" : 500
+}

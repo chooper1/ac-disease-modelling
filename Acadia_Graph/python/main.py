@@ -7,23 +7,30 @@ from graph_ops import matrixCM
 from covid_simulation import repeated_runs
 import datetime
 import visualization as viz
-
+import json
+import sys
 
     
 def main():
     print(datetime.datetime.now())
+
+    #reading config file
+    json_file = open(sys.argv[2],"r",encoding="utf-8")
+    config = json.load(json_file)
+    json_file.close()
+       
     # Define parameters
-    bet= [0.5,0.5,0.5]
-    tau = [5, 6, 4, 8, 17, 10]
-    ph = [.5, 1, 1]
-    init = 1
-    T=100
-    sigma = [1, 1]
-    ndt = 1
-    n_runs = 30
+    bet= config['bet']
+    tau = config['tau']
+    ph = config['ph']
+    init = config['init']
+    T=config['T']
+    sigma = config['sigma']
+    ndt = config['ndt']
+    n_runs = config['n_runs']
 
     # contact matrix   
-    C = matrixCM("graph_data_more.csv",12/7,1/420,500)
+    C = matrixCM("graph_data_more.csv",config['scalarC'],config['scalarM'],config['maxClassSize'])
     print(datetime.datetime.now())
         
     #running the covid19_Net simulation, 30 repetitions
@@ -53,7 +60,7 @@ def main():
         'x'      : x
         }
         
-    sio.savemat('save_data.mat',state)
+    sio.savemat(sys.argv[1],state)
 
     print(datetime.datetime.now())
     

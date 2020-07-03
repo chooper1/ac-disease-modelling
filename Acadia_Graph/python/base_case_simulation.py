@@ -7,38 +7,47 @@ import graph_ops
 from covid_simulation import repeated_runs
 import datetime
 import visualization as viz
-
+import json
 import sys
 
 
     
 def main():
     edge_file   = sys.argv[1]
-    n_runs      = int(sys.argv[2])
     output_file = sys.argv[3]
 
+    #reading config file
+    json_file = open(sys.argv[2],"r",encoding="utf-8")
+    config = json.load(json_file)
+    json_file.close()
+
     # Define parameters
-    bet= [0.5,0.5,0.5]
-    tau = [5, 6, 4, 8, 17, 10]
-    ph = [.5, 1, 1]
-    init = 1
-    T=100
-    sigma = [1, 1]
-    ndt = 1
+    bet= config['bet']
+    tau = config['tau']
+    ph = config['ph']
+    init = config['init']
+    T=config['T']
+    sigma = config['sigma']
+    ndt = config['ndt']
+    n_runs = config['n_runs']
+    scalarC = config['scalarC']
+    scalarM = config['scalarM']
+    scalarR = config['scalarR']
+    scalarS = config['scalarS']
 
     print(datetime.datetime.now())
 
     # load and calculate contact matrix  
     edges = graph_ops.loadEdgeList(edge_file)
     C,M,R,S = graph_ops.edgesAsMatrices(edges)
-    contacts = 12/7*C + 1/420*M + 1/4*R + 1*S
+    contacts = scalarC*C + scalarM*M + scalarR*R + scalarS*S
 
     print(datetime.datetime.now())
         
     #running the covid19_Net simulation, 30 repetitions
     C_list = [contacts,contacts] #Weekday, weekend
     C_ind = [0, 0, 0, 0, 0, 1, 1]
-    [n,cu,p,ou,r0t,r0inf,y,x] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt,C_ind)
+    [n,cu,p,ou,r0t,r0inf,y,x,r0theory,norms,mts] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt,C_ind)
 
     print(datetime.datetime.now())
     
@@ -59,7 +68,12 @@ def main():
         'r0t'    : r0t,
         'r0inf'  : r0inf,
         'y'      : y,
-        'x'      : x
+        'x'      : x,
+        'r0theory' : r0theory,
+        'norms' : norms,
+        'mts' : mts,
+        'mask_efficacy' : config['mask_efficacy'],
+        'mask_compliance' : config['mask_compliance']
         }
         
     sio.savemat(output_file,state)
