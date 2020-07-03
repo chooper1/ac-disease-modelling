@@ -308,7 +308,7 @@ R0_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
 }
 
 #right now only set up to work for 
-Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit_par=NULL, intervention){
+Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_IFR=0.01, fit_par=NULL, intervention){
   
   if(is.null(fit_par)==TRUE){
     fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type="time-dep", roll_size=roll_size, intervention=intervention)
@@ -322,7 +322,10 @@ Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
   fit_par=c(fit_par[1], fit_par[2], rho=1-mu_CFR, a=1, kappa=1/1.2, eta=1/8, mu_E=1/4, mu_2=1/5)
   names(fit_par)=names  
   
-
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  start=min(which(cases_C>0, arr.ind=TRUE))
+  times=c(start:length(cases_C))
   
   phi=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   phi$times=phi$times-tau
@@ -330,8 +333,9 @@ Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
   fit=lm(ratios~poly(times, 4, raw=TRUE), data=phi)
   
   Rt_list=c()
+  times2=c()
   with(as.list(fit_par), {
-    for(t in (1:(length(phi$times)-floor(1/kappa)))){
+    for(t in c(times[1]:max(times)-ceiling(1/kappa))){
         t2=t+1/kappa
        if(t2>=phi$times[1]){
         newdata=data.frame(times=as.numeric(t2))
@@ -341,7 +345,7 @@ Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
         phi2=mean(phi$ratios)
       }
       
-      if(t<intervention){
+      if(t2<intervention){
         Rt=beta_b/kappa+(1/phi2)*beta_b/mu_2+(1-phi2)*beta_b/(mu_2+eta)
         Rt_list=append(Rt_list, Rt)
       }else{
@@ -349,9 +353,20 @@ Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
         Rt_list=append(Rt_list, Rt)
         
       }
+        times2=c(times[1]:max(times)-ceiling(1/kappa))
     }
-      
+    
+    Rt_df=data.frame(times2, Rt_list)
+     return(Rt_df)
   })
 
-return(Rt_list)
+}
+
+plot_Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_IFR=0.01, fit_par=NULL, intervention){
+  region_name=regions(C_data)[region]
+  
+  Rt_df=Rt_model(region, C_data, F_data, R_data, mu_IFR, fit_par, intervention)
+  
+  plot=ggplot(data=Rt_df, aes(x=times2, y=Rt_list))+geom_line()+labs(title=region_name)
+  print(plot)
 }
