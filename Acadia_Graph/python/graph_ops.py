@@ -5,6 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import Series
+import itertools
 
 def loadEdgeList(filename):
     data = pd.read_csv(filename)
@@ -196,6 +197,8 @@ def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_co
 
 def partition_subgraphs(graph_data,group_type,info_array,groups):
     
+    result = pd.DataFrame(columns=['PersonA','PersonB','Type','Info'])
+    
     for info in info_array:
         
         data = graph_data.where((graph_data['Type']==group_type)&(graph_data['Info']== info)).dropna(axis=0, how='all')
@@ -212,16 +215,10 @@ def partition_subgraphs(graph_data,group_type,info_array,groups):
         
         group_members = group_members.unique()
 
-        print(group_members)
+        #print(group_members)
         
-        
 
-        #creating new rows:
-
-        df = pd.DataFrame(columns=['PersonA','PersonB','Type','Info'])
-
-
-        print(np.array_split(group_members, groups))
+        #print(np.array_split(group_members, groups))
         for part in np.array_split(group_members, groups):
             if len(part) > 1:
                 lst = list(itertools.combinations(part,2))
@@ -229,13 +226,21 @@ def partition_subgraphs(graph_data,group_type,info_array,groups):
                 for x in range(len(lst)):
                     # print(lst[x][0],lst[x][1])
                     new_row = {'PersonA':lst[x][0],'PersonB':lst[x][1],'Type':group_type,'Info':info}
-                    df = df.append(new_row,ignore_index=True)
+                    result = result.append(new_row,ignore_index=True)
+            '''
             else:
-                print(part)
-                print(part[0])
+                #print(part)
+                #print(part[0])
                 #safe case:
                 new_row = {'PersonA':part[0],'PersonB':part[0],'Type':group_type,'Info':info}
-                df = df.append(new_row,ignore_index=True)
+                result = result.append(new_row,ignore_index=True)
+            '''
 
+    for info in info_array:
+        indexNames = graph_data[ (graph_data['Type']==group_type)&(graph_data['Info']== info) ].index
+        graph_data.drop(indexNames , inplace=True)
+    
+    
+    result = pd.concat([result, graph_data], ignore_index=True)
 
-        print(df)
+    return result
