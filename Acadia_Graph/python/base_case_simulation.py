@@ -47,7 +47,7 @@ def main():
     #running the covid19_Net simulation, 30 repetitions
     C_list = [contacts,contacts] #Weekday, weekend
     C_ind = [0, 0, 0, 0, 0, 1, 1]
-    [n,cu,p,ou,r0t,r0inf,y,x,r0theory,norms,mts] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt,C_ind)
+    [n,cu,p,ou,r0t,r0inf,y,x,r0theory,norms,mts] = repeated_runs(n_runs, bet,tau,ph,init,C_list,T,sigma,ndt,C_ind, sim_offcampus_using=R,off_rate=2.0)
 
     print(datetime.datetime.now())
     
