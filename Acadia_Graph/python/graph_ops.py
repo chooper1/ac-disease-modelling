@@ -20,11 +20,16 @@ def calculateClassSizes(edge_list):
     counts['Size'] = (np.sqrt(counts['Type']*8+1).astype(int)+1)//2
     return counts[['Info','Size']].copy()    
 
-def edgesAsMatrices(edge_list):
+def edgesAsMatrices(edge_list, n=None):
     # Get count of number of repeats of personA->person
     counts = edge_list.groupby(['PersonA','PersonB','Type'], as_index=False).count()
 
-    highest_id = max(max(edge_list['PersonA']), max(edge_list['PersonB']))
+    highest_id = 0
+    if n is None:
+        highest_id = max(max(edge_list['PersonA']), max(edge_list['PersonB']))
+    else:
+        highest_id = n
+
     c_matrix = np.zeros((highest_id+1,highest_id+1))
     m_matrix = c_matrix.copy()
     r_matrix = c_matrix.copy()
@@ -47,6 +52,56 @@ def edgesAsMatrices(edge_list):
     s_matrix = s_matrix + np.transpose(s_matrix)
     
     return c_matrix, m_matrix, r_matrix, s_matrix
+
+
+def student_roommates_dist(freq=None):
+    # Default dist is based on:
+    # https://books.google.ca/books?id=k8IyAAAAIAAJ&pg=PA27&lpg=PA27&dq=distribution+of+number+of+roommates+student&source=bl&ots=dhntlrZkqY&sig=ACfU3U2TOHZvAnGaUpX544Wesp9LM9roRA&hl=en&sa=X&ved=2ahUKEwj64diJo6_qAhUFknIEHfSvCiAQ6AEwAHoECAsQAQ#v=onepage&q=distribution%20of%20number%20of%20roommates%20student&f=false
+    if freq is None:
+        freq = np.array([209,507,206,152])
+    
+    # this is the dist of number of students with apartments of a given size
+    base_dist = (freq/np.sum(freq)) 
+    
+    # Readjust distribution such that the frequency is over the people in them, not
+    # over the apartment sizes.
+    vals = np.arange(freq.size)+1
+    dist_adj = base_dist/vals
+    dist_adj = dist_adj/np.sum(dist_adj)
+    
+    return st.rv_discrete(values=(vals, dist_adj))
+
+
+def random_roommate_assignment(res_matrix,dist_fn):
+    # Build off-campus matrix, all zeros
+    sz = res_matrix.shape[0]
+    offcampus = np.zeros((sz,sz))
+    
+    # Determine who does not live on campus
+    res_mates = np.sum(res_matrix,axis=1)
+    off_campus_people = np.where(res_mates==0)[0]
+    
+    # Make bins (apartments) of sizes distributed by dist_fn
+    n = off_campus_people.size
+    range = np.arange(n)
+    group_ids = np.repeat(range, dist_fn.rvs(size=n))
+    group_ids = group_ids[range]
+    
+    # Randomly order the off-campus people
+    p2 = off_campus_people.copy()
+    np.random.shuffle(p2)
+    
+    # For each apartment, make each pair of people in it adjacent
+    groups = np.unique(group_ids)
+    for id in groups:
+        members = p2[group_ids==id]
+        for pair in itertools.combinations(members,2):
+            offcampus[pair[0]][pair[1]] = 1
+    
+    # Make bi-directional
+    offcampus = offcampus + np.transpose(offcampus)
+    
+    return offcampus
 
 
 #Here's a change
@@ -171,11 +226,11 @@ def matrixRS(filename,R,S):
 
 def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_contacts_per_day):
 
-    students_CM = pd.concat([pd.Series(CM_graph.PersonA.unique()),pd.Series(CM_graph.PersonB.unique())],ignore_index = True)
-    students_CM = students_CM.unique()
+    #students_CM = pd.concat([pd.Series(CM_graph.PersonA.unique()),pd.Series(CM_graph.PersonB.unique())],ignore_index = True)
+    #students_CM = students_CM.unique()
+    #totalNodes = len(students_CM)
 
-           
-    totalNodes = len(students_CM)
+    totalNodes = CM_graph.shape[0]
 
     x = nx.watts_strogatz_graph(totalNodes,avg_friends,dispersion)
     nx.draw_networkx(x, node_size=10)
@@ -184,13 +239,8 @@ def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_co
 
     for elem in np.nditer(matrix):
         elem = int(elem)
-        #print(type(elem))
         if elem == 1:
             elem = np.random.poisson(avg_contacts_per_day)
-            print("hello")
-            print(elem)
-
-    print(matrix.sum(dtype='float'))
 
     return matrix
 
