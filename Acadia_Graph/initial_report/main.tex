@@ -25,7 +25,6 @@
 \usepackage[english]{babel} % Specify a different language here - english by default
 
 %\usepackage{lipsum} % Required to insert dummy text. To be removed otherwise
-
 %----------------------------------------------------------------------------------------
 %	COLUMNS
 %----------------------------------------------------------------------------------------
@@ -111,7 +110,7 @@ Our team includes three professors in Math \& Stats, \ed{Duane Currie -- the sup
 Our primary task is the construction of a set of models (mathematical and computational) which will allow us to simulate COVID-19 on the Acadia campus.
 The goal is to use the models to obtain quantitative evidence of the relative importance of a range of possible interventions and policies aimed at preventing, detecting and controlling a possible outbreak on campus.
 For example, is it significantly more effective, in terms of reducing disease spread, to convert all classes with more than 50 people to fully online than it is to divide such large classes into multiple smaller meeting groups in a blended approach?
-Our project is similar to others (see \cite{.....}), but is specifically tailored for the situation at Acadia.
+Our project is similar to others (see ...), but is specifically tailored for the situation at Acadia.
 
 Our primary model is ``agent-based'' and simulates the interaction of students (around \ed{4000}) on campus.
 This includes classes, movement in same buildings between classes, and on-campus residences with more concentrated interaction inside residence sections.  It also allows for simulating the effect of other social interactions.
@@ -181,7 +180,9 @@ Of course some of these factors can be more exactly implemented in our model tha
 
 We would describe our simulation model as being in late phases of development.  However, it would be timely to demonstrate its application to a few problems.  
 
-A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of masks in reducing the spread of the disease.  Recently, mask were documented as reducing the probability of a disease spreading between individuals by \ed{Need to look this up}.  Using this in a simulation, we can observe the difference between no wearing of masks and diligent wearing of masks in environments where contact may occur.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.  \ed{Duane TO-DO:  Look up ref for mask efficacy.  Do simulation for bet*efficacy.  Which measure?  Build plot.} 
+A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of masks in reducing the spread of the disease.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%\cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.   For each level of mask compliance, 100 simulations were run with randomized off-campus living simulation.  
+
+
 
 Another example application is to examine the effect of different maximum in-person class sizes on the degree of disease spread.  \ed{Duane TO-DO:  pick a good visual from the spreadsheet your class size simulation is compiling, and explain the plot.}
 
@@ -213,8 +214,9 @@ We have been developing our modelling code in such a way as to support public re
 %	REFERENCE LIST
 %----------------------------------------------------------------------------------------
 \phantomsection
-\bibliographystyle{unsrt}
+\bibliographystyle{unsrtetal}
 \bibliography{references}
+
 
 %----------------------------------------------------------------------------------------
 
