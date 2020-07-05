@@ -180,7 +180,15 @@ Of course some of these factors can be more exactly implemented in our model tha
 
 We would describe our simulation model as being in late phases of development.  However, it would be timely to demonstrate its application to a few problems.  
 
-A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of masks in reducing the spread of the disease.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%\cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.   For each level of mask compliance, 100 simulations were run with randomized off-campus living simulation.  
+A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of masks in reducing the spread of the disease.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%\cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.   For each level of mask compliance, 100 simulations were run with simulated off-campus living situations.  
+
+Figure~\ref{fig:compliance} shows the model's expected number of students infected over time, for mask compliance rates from 0\% up to 100\%.  While there is relatively little impact at low levels of mask compliance, it is clear that a high level of mask compliance (say, 80\% or above) is important to significantly flattening the curve. 
+
+\begin{figure*}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
+	\includegraphics[width=\linewidth]{mask_compliance}
+	\caption{Effect of mask compliance on number of students infected within 100 days of first infection on campus.}
+	\label{fig:compliance}
+\end{figure*}
 
 
 
