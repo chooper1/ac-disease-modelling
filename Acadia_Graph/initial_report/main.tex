@@ -133,7 +133,7 @@ The transition and transmission probabilities are calibrated so that the disease
 
 The possible interactions are governed by a large amount of contact data.
 The contact data is derived from known information about class enrolments, class locations and times, and residence room assignments.
-We have also built a capability to also include reasonable assumptions about social interaction outside of the academic context, modeled using standard methods from the research literature for simulation of human social contact networks. Because we cannot have precise information about these non-academic interactions, when we include social contact network simulation, we run multiple iterations using repeated sampling of random social contact networks.
+We have also built a capability to also include reasonable assumptions about social interaction outside of the academic context, modeled using standard methods from the research literature for simulation of human social contact networks\cite{watts_collective_1998,schnettler_structured_2009,amblard_which_2015}. Because we cannot have precise information about these non-academic interactions, when we include social contact network simulation, we run multiple iterations using repeated sampling of random social contact networks.
 Each different category of interaction has a certain level of strength, considered in terms of average amount of time in contact, which leads to differing probabilities of disease transmission for the different categories.
 
 \emph{It is important to note that the data being used has been anonymized by subsampling and re-coding of identifiers, and is only available to paid employees of Acadia University.}
@@ -141,10 +141,13 @@ Each different category of interaction has a certain level of strength, consider
 The different categories of contact data are encoded separately and thus it is possible to modify each of them independently from the others.
 For example, it is simple to remove all classes larger than 50 from the ``classroom contact matrix'' and thus measure the effect of moving all such classes from face-to-face instruction to fully online instruction.
 It is also possible to modify many other aspects of the simulation.
-As an example, should Acadia have weekly access to some number of PCR tests for SARS-CoV-2, we could easily include different testing strategies into the model to determine the expected relative effectiveness of different randomized testing strategies on key measures of interest.  
+As an example, should Acadia have weekly access to some number of PCR tests for SARS-CoV-2, we could  integrate different testing strategies into the model to determine the expected relative effectiveness of different randomized testing strategies on key measures of interest.  
 
 As an idea, a representative (but incomplete) list of possible experimental factors is:
 \begin{enumerate}
+    \setlength{\itemsep}{1pt}
+    \setlength{\parskip}{0pt}
+    \setlength{\parsep}{0pt}
 
     \item restricting the size of face-to-face classes
 
@@ -180,9 +183,9 @@ Of course some of these factors can be more exactly implemented in our model tha
 
 We would describe our simulation model as being in late phases of development.  However, it would be timely to demonstrate its application to a few problems.  
 
-A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of masks in reducing the spread of the disease.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%\cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.   For each level of mask compliance, 100 simulations were run with simulated off-campus living situations.  
+As a demonstration of our model, we can examine the effectiveness of masks in reducing the spread of COVID-19.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%\cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.  A recent review of research suggests that 40\%-45\% of cases are asymptomatic, but that university students may be asymptomatic at a higher level \cite{oran_prevalence_2020}.  In these simulations, we assume cases have a 50\% chance of being asymptomatic.  For each level of mask compliance, 100 simulations were run with simulated off-campus living situations.  
 
-Figure~\ref{fig:compliance} shows the model's expected number of students infected over time, for mask compliance rates from 0\% up to 100\%.  While there is relatively little impact at low levels of mask compliance, it is clear that a high level of mask compliance (say, 80\% or above) is important to significantly flattening the curve. 
+Figure~\ref{fig:compliance} shows the model's expected number of students infected over time, for mask compliance rates from 0\% up to 100\%.  While there is relatively little impact at low levels of mask compliance, it is clear that a high level of mask compliance (say, 80\% or above) is important to significantly flattening the curve.  It also illustrates two important points regarding mask use:  1) a high degree of mask use helps signficantly; and 2) mask use alone is not enough, and should be combined with other measures.
 
 \begin{figure}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
 	\includegraphics[width=\linewidth]{mask_compliance}
@@ -202,13 +205,16 @@ Another example application is to examine the effect of different maximum in-per
 
 \section{Future plans}
 
-We are currently in the process of reviewing assumptions such as contact durations, social network parameters, and distribution of infectivity over time.  As well, a paper released in pre-print earlier this month for modelling CoViD-19 in a large university setting has also used a fairly similar methodology to ours, and we are reviewing methodological differences to determine if some aspects of their methodology may be appropriate for our model and setting.
+We are currently in the process of reviewing assumptions such as contact durations, social contact network parameters, and distribution of infectivity over time.    Some additional modifications which are being considered relate to integrating additional compliance measures (e.g. case reporting compliance, symptom reporting delays, individual-level mask compliance).
+As well, a paper released in pre-print earlier this month for modelling COVID-19 in a large university setting\cite{gressman2020simulating} has also used a fairly similar methodology to ours, and we are reviewing methodological differences to determine if some aspects of their methodology may be appropriate for our model and setting.
 
-After such review, we intend to develop a more extensive technical report outlining in detail our models and results.  While there are some applications of this model that we are exploring, we would certainly invite requests from the Planning Committee for questions to explore using our model. 
+After such review, we intend to develop a more extensive technical report outlining in detail our models and results.  While there are some applications of this model that we are currently exploring, we would certainly invite requests from the Planning Committee for questions to explore using our model. 
 
 One area which we have begun exploring is randomized testing strategies.  We have started consulting with statisticians and graph theorists on methods of randomly sampling individuals to test as part of a randomized testing strategy.  In order to evaluate such approaches, we have set up our model to allow us to calculate a variety of measures such as the expected number of individuals infected before a first case is known.
 
-We have been developing our modelling code in such a way as to support public release of the code (but not the data, of course).
+Some research regarding social contact networks of university students suggests that student contact networks are multi-layered and evolve along a combination of social and academic lines\cite{stadtfeld_integration_2019}, and methods that integrate these ideas may improve realism of simulation.
+
+We have been developing our modelling code in such a way as to support public release of the code (but not the data, of course).  It is structured to help universities simulate disease spread, but with little effort it could be adapted to other similar environments (e.g. colleges, P-12 schools).
 
 \ed{more experimentation -- suggest types??}
 
