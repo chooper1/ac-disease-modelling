@@ -110,9 +110,9 @@ Our team includes three professors in Math \& Stats, \ed{Duane Currie -- the sup
 Our primary task is the construction of a set of models (mathematical and computational) which will allow us to simulate COVID-19 on the Acadia campus.
 The goal is to use the models to obtain quantitative evidence of the relative importance of a range of possible interventions and policies aimed at preventing, detecting and controlling a possible outbreak on campus.
 For example, is it significantly more effective, in terms of reducing disease spread, to convert all classes with more than 50 people to fully online than it is to divide such large classes into multiple smaller meeting groups in a blended approach?
-Our project is similar to others (see ...), but is specifically tailored for the situation at Acadia.
+Our project is similar to a contemporaneous effort for a large university in the United States\cite{gressman2020simulating}, but this is specifically tailored for the situation at Acadia.
 
-Our primary model is ``agent-based'' and simulates the interaction of students (around \ed{4000}) on campus.
+Our primary model is ``agent-based'', which allows modelling of individual-level contact structures and behaviours~\cite{luke_systems_2012,el-sayed_social_2012}.  Using this type of model, we can simulate the interaction of students on campus, and how that relates to transmission of Covid-19.
 This includes classes, movement in same buildings between classes, and on-campus residences with more concentrated interaction inside residence sections.  It also allows for simulating the effect of other social interactions.
 % DC:  Nothing currently for faculty and staff.  That would be a useful overlay, though.
 % For faculty and staff this includes \ed{what....}
@@ -184,21 +184,19 @@ A common exercise in modelling CoViD-19 is to demonstrate the effectiveness of m
 
 Figure~\ref{fig:compliance} shows the model's expected number of students infected over time, for mask compliance rates from 0\% up to 100\%.  While there is relatively little impact at low levels of mask compliance, it is clear that a high level of mask compliance (say, 80\% or above) is important to significantly flattening the curve. 
 
-\begin{figure*}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
+\begin{figure}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
 	\includegraphics[width=\linewidth]{mask_compliance}
 	\caption{Effect of mask compliance on number of students infected within 100 days of first infection on campus.}
 	\label{fig:compliance}
-\end{figure*}
-
-
+\end{figure}
 
 Another example application is to examine the effect of different maximum in-person class sizes on the degree of disease spread.  Using similar parameters, Figure~\ref{fig:classsize} depicts the final number of people infected against the maximum in-person class size permitted.  Here, we see ...\ed{This needs to be filled in after plotted}.  It should be noted that this plot assumes no other changes in social behaviour, and that in-person attendance is replaced by similar time studying alone.    
 
-\begin{figure*}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
+\begin{figure}[ht]\centering % Using \begin{figure*} makes the figure take up the entire width of the page
 	\includegraphics[width=\linewidth]{classsize}
 	\caption{Effect of maximum in-person class size on number of students infected within 100 days of first infection on campus.}
 	\label{fig:classsize}
-\end{figure*}
+\end{figure}
 
 \ed{Holger:  anything in the hopper?}
 
