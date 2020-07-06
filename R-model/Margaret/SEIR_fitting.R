@@ -311,7 +311,7 @@ R0_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, fit
 Rt_model=function(region, C_data=JHU_C_data, F_data=JHU_F_data, R_data=JHU_R_data, mu_IFR=0.01, fit_par=NULL, intervention){
   
   if(is.null(fit_par)==TRUE){
-    fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type="time-dep", roll_size=roll_size, intervention=intervention)
+    fit_par=fit_to_SEIR(region, C_data, F_data, R_data, mu_IFR, pop, beta_type="time-dep", intervention=intervention)
   }
   
   tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
