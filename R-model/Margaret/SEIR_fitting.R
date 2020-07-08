@@ -6,6 +6,7 @@ source("fit_datasets_F.R")
 rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
   with(as.list(c(y, par, fit)), {
     
+    #sets phi to the average for t before start, selects correct phi value if after start
     if(t>=phi$times[1]){
       newdata=data.frame(times=as.numeric(t))
       phi=as.numeric(predict(fit, newdata=newdata))
@@ -14,6 +15,7 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
       phi=mean(phi$ratios)
     }
     
+    #rhs of ODE with parameters for three different betas
     if(beta_type=="different"){
       dS=-(S/N)*(beta_l*L+beta_1*I_1+beta_2*I_2)
       dE=(S/N)*(beta_l*L+beta_1*I_1+beta_2*I_2)-mu_E*E
@@ -28,6 +30,7 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
       dR_2=eta*rho*I_4
       dF=eta*(1-rho)*I_4
     }
+    #rhs of ODE with parameters for one beta
     else if(beta_type=="equal"){
       beta_1=beta
       beta_2=beta
@@ -44,7 +47,10 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
       dR_1=eta*I_3
       dR_2=eta*rho*I_4
       dF=eta*(1-rho)*I_4
-    } else if(beta_type=="time-dep"){
+    } 
+    #rhs of ODE with one beta before intervention before intervention and one after
+    else if(beta_type=="time-dep"){
+      #uses beta_b before intervention
       if(t<intervention){
         dS=-(S/N)*(beta_b*L+beta_b*I_1+beta_b*I_2)
         dE=(S/N)*(beta_b*L+beta_b*I_1+beta_b*I_2)-mu_E*E
@@ -58,7 +64,9 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
         dR_1=eta*I_3
         dR_2=eta*rho*I_4
         dF=eta*(1-rho)*I_4
-      } else{
+      } 
+      #uses beta_a after intervention
+      else{
         dS=-(S/N)*(beta_a*L+beta_a*I_1+beta_a*I_2)
         dE=(S/N)*(beta_a*L+beta_a*I_1+beta_a*I_2)-mu_E*E
         dL=mu_E*E-a*kappa*L
@@ -81,6 +89,7 @@ rhs_SEIR=function(t, y, par, fit, N, phi, beta_type, intervention){
 
 ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, times, start, fit, S0, pop, N, beta_type, intervention, mu_CFR){
   
+  #setting parameter names and values
   if(beta_type=="different"){
     names=c("beta_l", "beta_1", "beta_2", "rho", "a", "kappa", "eta", "mu_E", "mu_2")
     par=c(par[1], par[2], par[3], rho=1-mu_CFR, a=1,  
@@ -96,9 +105,10 @@ ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, time
     names(par)=names
   }
   
-  
+  #solves the ODE for a given set of parameters for each day when we have data
   ode_soln=ode(y=S0, times, func=rhs_SEIR, par=par, fit=fit, N=N, phi=phi, beta_type=beta_type, intervention=intervention)
   
+  #time series from ODE solution
   I_2=ode_soln[,"I_2"]
   I_4=ode_soln[,"I_4"]
   R_2=ode_soln[,"R_2"]
@@ -108,8 +118,11 @@ ssq_SEIR=function(par, region, cases_C, cases_F, cases_R, mu_IFR=0.01, phi, time
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))/mean(active_cases)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)+sum(sqrt((cases_R-R_2)^2))/mean(cases_R)
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))/mean(active_cases)
  # ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))
-  ssq=sum(sqrt((cases_C-(total_cases))^2))/mean(cases_C)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)
   #ssq=sum(sqrt((cases_C-(total_cases))^2))
+  
+  
+  #calculates residuals from total cases and fatality data, normalized by the average of the values in each dataset
+  ssq=sum(sqrt((cases_C-(total_cases))^2))/mean(cases_C)+sum(sqrt((cases_F-F_)^2))/mean(cases_F)
   
   #ssq=sum(sqrt((active_cases-(I_2+I_4))^2))+sum(sqrt((cases_F-F_)^2))+sum(sqrt((cases_R-R_2)^2))
   

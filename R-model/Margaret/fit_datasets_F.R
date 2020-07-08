@@ -52,7 +52,7 @@ fit_param_F=function(region, data){
 
 fit_multiple_F=function(data){
   
-  #removes columns for countries with no cases
+  #finds which countries have fewer than 10 cases
   few_cases=c()
   for(x in seq(1, ncol(data))){
     cases=as.integer(data[5:nrow(data), x])
@@ -61,6 +61,8 @@ fit_multiple_F=function(data){
       few_cases=append(few_cases, x)
     }
   }
+  
+  #removes columns for countries with fewer than 10 cases
   data=subset(data, select=-c(few_cases))
   
   #generates labels
@@ -79,6 +81,7 @@ fit_multiple_F=function(data){
     paramdf=cbind(paramdf, p)
     print(p)
   }
+  
   return(paramdf)
 }
 
@@ -110,22 +113,28 @@ fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
   return(parest)
 }
 
-#plots the unfitted case data scaled down to visualize the curves in comparison to one another
+#plots the unfitted fatality and scaled case data data to visualize the curves in comparison to one another
 plot_cases_scaled=function(region, C_data=JHU_C_data, F_data=JHU_F_data, factor=0.05){
   
+  #generates region labels
   regions=regions(C_data)
   
+  #format case data
   cases_C=as.integer(C_data[5:nrow(C_data), region])
   cases_C=cases_C[!is.na(cases_C)]
   
+  #format fatality data
   cases_F=as.integer(F_data[5:nrow(F_data), region])
   cases_F=cases_F[!is.na(cases_F)]
   
+  #generate time labels
   times=c(1:length(cases_C))
   
+  #create data frames for cases and fatalities
   C_df=data.frame(times, cases_C)
   F_df=data.frame(times, cases_F)
   
+  #plots fatality data (blue) and scaled case data (red)
   plot=ggplot(data=C_df, aes(x=times, y=cases_C*factor, color="green"))+geom_line()+geom_line(data=F_df, aes(x=times, y=cases_F, color="red"))+theme(legend.position="none")+labs(title=regions[region])
   print(plot)
 }
@@ -259,18 +268,22 @@ total_infected=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.0
   #cases_C=c(cases_C[start:length(cases_C)])
   a=c(cases_C[1:start-1])
   
+  #creates a vector of new cases from cumulative case data
   new_cases=c(cases_C[1])
   for(x in c(2:length(cases_C))){
     new_case=cases_C[x]-cases_C[x-1]
     new_cases=append(new_cases, new_case)
   }
   
+  #creates a vector of phi values
+  #before "start", the phi value is assumed to be the average of phi over all the time for which it was calculated
   ratios=df$ratios
   phi_before=c(rep(mean(ratios), start-1))
   ratios=append(phi_before, ratios)
   
+  #each day's new cases are multiplied by phi to get an estimate of the true number of new cases on that day
   true_new_cases=new_cases*ratios
-
+  
   total_cases=sum(true_new_cases)
   
   print(region_names[region])
@@ -306,10 +319,11 @@ total_infected_multiple_regions=function(C_data=JHU_C_data, F_data=JHU_F_data, m
   return(totals)
 }
   
-Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=9){
+Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=4, roll_size=1){
   
   region_names=regions(C_data)
   
+  #calculates phi for the region
   df=phi_vs_time(region, C_data, F_data, mu_CFR=mu_CFR)
   
   cases_C=as.integer(C_data[5:nrow(C_data), region])
@@ -318,17 +332,20 @@ Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_
   cases_F=as.integer(F_data[5:nrow(F_data), region])
   cases_F=cases_F[!is.na(cases_F)]
   
+  #before start, phi is assumed to be the average of all the calculated phi values
   start=max(min(which(cases_C>0, arr.ind=TRUE)), min(which(cases_F>0, arr.ind=TRUE)))
   ratios=df$ratios
   phi_before=c(rep(mean(ratios), start-1))
   ratios=append(phi_before, ratios)
   
+  #daily new cases calculated from cumulative case data
   new_cases=c(cases_C[1])
   for(x in c(2:length(cases_C))){
     new_case=cases_C[x]-cases_C[x-1]
     new_cases=append(new_cases, new_case)
   }
   
+  #Rt calculated from formula for every day after day tau_SI (because of delay)
   Rt=c()
   for(x in c((tau_SI+1):length(cases_C))){
     Rt_x=(ratios[x]*new_cases[x])/(ratios[x-tau_SI]*new_cases[x-tau_SI])
@@ -338,16 +355,7 @@ Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_
   times=c((tau_SI+1):length(cases_C))
   Rt_df=data.frame(times, Rt)
   
-  return(Rt_df)
-}
-
-
-plot_Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=9, roll_size=1){
-  
-  region_name=regions(C_data)[region]
-  
-  Rt_df=Rt_data(region, C_data, F_data, mu_CFR, tau_SI)
-  
+  #removes all NA and inf values (can give unreliable shape in places with many consecutively, but they should be concentrated at the start)
   remove=c()
   for(x in c(1:length(Rt_df[,1]))){
     if(is.na(Rt_df[x, 2])==TRUE){
@@ -357,13 +365,23 @@ plot_Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01,
       remove=append(remove, x)
     }
   }
-
   Rt_df=Rt_df[-c(remove),]
-
+  
+  #sliding average taken over roll_size vlues
   times=rollmean(Rt_df$times, roll_size)
   Rt=rollmean(Rt_df$Rt, roll_size)
   
   Rt_df=data.frame(times, Rt)
+  
+  return(Rt_df)
+}
+
+
+plot_Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, tau_SI=4, roll_size=1){
+  
+  region_name=regions(C_data)[region]
+  
+  Rt_df=Rt_data(region, C_data, F_data, mu_CFR, tau_SI, roll_size = roll_size)
   
   plot=ggplot(data=Rt_df, aes(x=times, y=Rt))+geom_line()+labs(title=region_name)
   print(plot)

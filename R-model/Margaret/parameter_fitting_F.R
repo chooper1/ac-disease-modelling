@@ -153,14 +153,22 @@ ssq_C_F=function(par, cases_C, cases_F, F_parest){
   return(ssqr)
 }
 
-#this function is to visualize the effect of changing tau (uses the automatic scaling of 0.05 by default)
+#this function is to visualize the effect of changing tau when fitting for tau and mu_CFR
+#uses the automatic scaling of 0.05 by default for mu_CFR
+#tau is a vector of tau values
 plot_ssq_vs_tau=function(tau, cases_C, cases_F, F_parest){
+  
   ssq=c()
+  
+  #calculates ssq for each tau value
   for(x in tau){
     ssq_tau=ssq_C_F(c(x), cases_C, cases_F, F_parest)
     ssq=append(ssq, ssq_tau)
   }
+  
   df=data.frame(tau, ssq)
+  
+  #plots ssq vs. tau values
   plot=ggplot(data=df, aes(x=tau, y=ssq))+geom_line()
   print(plot)
 }
