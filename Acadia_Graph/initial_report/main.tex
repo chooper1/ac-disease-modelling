@@ -71,12 +71,12 @@
 %----------------------------------------------------------------------------------------
 
 \Abstract{
-We are a group of professors, an institutional researcher, and students who are building mathematical and computational models with the goal of informing decisions regarding policies aimed at preventing, detecting and containing a possible outbreak of COVID-19 at Acadia.
+We are a group consisting of professors, an institutional researcher, and students who are building mathematical and computational models with the goal of informing decisions regarding policies aimed at preventing, detecting and containing a possible outbreak of COVID-19 at Acadia.
 Our primary model is based on simulating all of the individuals at Acadia and their interactions.
 A strong feature of our effort is the availability of (appropriately anonymized) historical data on class locations, class enrollments, residence room assignments and other similar details of the day-to-day activities of people at Acadia.
 This greatly increases the realism of our model and also makes it very specific to the situation at Acadia.\\[5pt]
 Using our model we can run simulations of many different combinations of interventions and policy decisions and thereby obtain a quantitative idea of their relative importance in controlling COVID-19.
-\emph{We welcome suggestions for combinations to experiment with. }\\[5pt]
+\emph{We welcome suggestions for combinations with which to experiment. }\\[5pt]
 The result of any given simulation run depends on many different random choices since each interaction between an infective individual and a susceptible individual only results in a new infection with a certain probability.
 Thus repeating the simulation many times under the same scenario gives statistical information about the range of possible outcomes.\\[5pt]
 \emph{We do not claim that the actual numerical values from any simulation are precisely accurate predictions of the progression or final size of an outbreak, only that the relative sizes of the outbreaks under different scenarios are a meaningful comparison of the effects of different combinations of interventions.}\\[5pt]
@@ -116,10 +116,10 @@ a rural town.  We connected with like-minded Atlantic researchers and participat
 
 
 Our local Acadia team includes three professors in Math \& Stats, the Institutional Research Officer, and three undergraduate students.
-Our primary task is the construction of a set of models (mathematical and computational) which will allow us to simulate COVID-19 on the Acadia campus.
+Our primary task is the construction of a set of models (mathematical and computational) which will allow us to simulate COVID-19 transmission on the Acadia campus.
 The goal is to use the models to obtain quantitative evidence of the relative importance of a range of possible interventions and policies aimed at preventing, detecting and controlling a possible outbreak on campus.
 For example, is it significantly more effective, in terms of reducing disease spread, to convert all classes with more than 50 people to fully online than it is to divide such large classes into multiple smaller meeting groups in a blended approach?
-Our project is similar to a contemporaneous effort for a large university in the United States \cite{gressman2020simulating}, but this is specifically tailored for the situation at Acadia.
+Our project is similar to a contemporaneous effort for a large university in the United States \cite{gressman2020simulating}, but ours is specifically tailored for the situation at Acadia.
 
 Our primary model is ``agent-based'', which allows modelling of individual-level contact structures and behaviours~\cite{luke_systems_2012,el-sayed_social_2012}.  Using this type of model, we can simulate the interaction of students on campus, and how that relates to transmission of COVID-19.
 This includes classes, movement in same buildings between classes, and on-campus residences with more concentrated interaction inside residence sections.  It also allows for simulating the effect of other social interactions.
@@ -138,11 +138,11 @@ Our model begins with a contact network of people, where people are connected if
 The simulation of our model advances by moving through time in discrete steps (each such time step could represent one day or a specific portion of a day such as six hours).
 During each such step each individual is checked for possible interactions with other individuals according to the contact network given in the model.
 Each individual in the model is described as being in one of a possible set of states, be it \emph{susceptible}, \emph{pre-symptomic}, \emph{symptomatic}, \emph{asymptomatic}, \emph{quarantined}, \emph{recovered}, etc.  As the simulation advances and interactions occur, individuals potentially (with some probability) transition from one state to another according to the typical progression of COVID-19.
-The transition and transmission probabilities are calibrated so that the disease dynamics generated by our model corresponds to the generally accepted transmission rates and distribution of time periods (latency period, infectious period, serial interval, etc) for COVID-19.
+The transition and transmission probabilities are calibrated so that the disease dynamics generated by our model corresponds to the generally accepted transmission rates and distribution of time periods (latency period, infectious period, serial interval, etc.) for COVID-19.
 
-The possible interactions are governed by a large amount of contact data, which is 
+The possible interactions are governed by a large amount of contact data, which 
 is derived from known information about class enrolments, class locations and times, and residence room assignments.
-We have built a capability to also include reasonable assumptions about social interaction outside of the academic context, modelled using standard methods from the research literature for simulation of human social contact networks \cite{watts_collective_1998,schnettler_structured_2009,amblard_which_2015}. Because we cannot have precise information about these non-academic interactions, when we include social contact network simulation, we run multiple iterations using repeated sampling of random social contact networks.
+We have built a capability to also include reasonable assumptions about social interaction outside of the academic context, modeled using standard methods from the research literature for simulation of human social contact networks \cite{watts_collective_1998,schnettler_structured_2009,amblard_which_2015}. Because we cannot have precise information about these non-academic interactions, when we include social contact network simulation, we run multiple iterations using repeated sampling of random social contact networks.
 Each category of interaction has a certain level of strength, considered in terms of average amount of time in contact, which leads to probabilities of disease transmission that vary with the categories.
 
 \emph{It is important to note that the data being used has been anonymized by subsampling and re-coding of identifiers, and is only available to paid employees of Acadia University.}
@@ -188,9 +188,15 @@ Of course some of these factors can be more exactly implemented in our model tha
 \label{sec:prelimresults}
 
 
-We would describe our simulation model as being in late phases of development.  However, it can be used to illustrate the impact of some measures to manage the spread of COVID-19.  
+We would describe our simulation model as being in late phases of development.  However, it can already be used to illustrate the impact of some measures to manage the spread of COVID-19.  
 
-As a demonstration of our model, we can examine the effectiveness of masks in reducing the spread of COVID-19.  Recently, mask were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%  \cite{chu_physical_2020}.  Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in a same residence is a few minutes, and between students living in a same residence section is 15 minutes longer on average.  A recent review of research suggests that 40\%-45\% of cases are asymptomatic, but that university students may be asymptomatic at a higher level \cite{oran_prevalence_2020}.  In these simulations, we assume cases have a 50\% chance of being asymptomatic.  For each level of mask compliance, 100 simulations were run with simulated off-campus living situations.  
+As a demonstration of our model, we can examine the effectiveness of masks in reducing the spread of COVID-19.  
+Recently, masks were documented as reducing the probability of a respiratory illess spreading between individuals by 44\%  \cite{chu_physical_2020}.  
+Using this in a simulation, we can observe the effect of varying degrees of mask-wearing compliance of students.  
+In this simulation, we assume class co-enrolment represents 3 hours/week together, passing between classes is of short duration (15 seconds), and average contact between students in the same residence is a few minutes, and between students living in the same residence section is 15 minutes longer on average.  
+A recent review of research suggests that 40\%-45\% of cases are asymptomatic, but that university students may be asymptomatic at a higher level \cite{oran_prevalence_2020}.  
+In these simulations, we assume cases have a 50\% chance of being asymptomatic.  
+For each level of mask compliance, 100 simulations were run with simulated off-campus living situations.  
 
 Figure~\ref{fig:compliance} shows the model's expected number of students infected over time, for mask compliance rates from 0\% up to 100\%.  While there is relatively little impact at low levels of mask compliance, it is clear that a high level of mask compliance (say, 80\% or above) is important to significantly flattening the curve.  It also illustrates two important points regarding mask use:  1) a high degree of mask use helps signficantly; and 2) mask use alone is not enough, and should be combined with other measures.
 
