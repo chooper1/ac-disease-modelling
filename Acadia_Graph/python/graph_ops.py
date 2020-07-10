@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pandas import Series
 import itertools
+import scipy.stats as st
 
 def loadEdgeList(filename):
     data = pd.read_csv(filename)
@@ -233,7 +234,7 @@ def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_co
     totalNodes = CM_graph.shape[0]
 
     x = nx.watts_strogatz_graph(totalNodes,avg_friends,dispersion)
-    nx.draw_networkx(x, node_size=10)
+    # nx.draw_networkx(x, node_size=10)
 
     matrix = nx.to_numpy_matrix(x)
 
@@ -241,7 +242,9 @@ def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_co
         elem = int(elem)
         if elem == 1:
             elem = np.random.poisson(avg_contacts_per_day)
+            
 
+    matrix = np.array(matrix)
     return matrix
 
 

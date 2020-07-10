@@ -90,56 +90,56 @@ def main():
         
         trials.at[index,'p_spread'] = np.mean(spread)
 
-        su.calculate('all_final_size',fs)
+        su.calculate(trials,index,'all_final_size',fs)
 
         if n_spread > 0:
-            su.calculate('spread_final_size',fs[spread])
+            su.calculate(trials,index,'spread_final_size',fs[spread])
 
         prevalence = p[:,:,0] + p[:,:,1] + p[:,:,2] + p[:,:,3] + p[:,:,4]
         tmp = np.max(prevalence, axis=1)
 
-        su.calculate('all_maxPrev',tmp)
+        su.calculate(trials,index,'all_maxPrev',tmp)
 
         if n_spread > 0:
 
-            su.calculate('spread_maxPrev',tmp[spread])
+            su.calculate(trials,index,'spread_maxPrev',tmp[spread])
         
         symp = p[:,:,1] + p[:,:,3] + p[:,:,4]
         tmp = np.max(symp, axis=1)
 
-        su.calculate('all_maxSymp',tmp)
+        su.calculate(trials,index,'all_maxSymp',tmp)
 
         if n_spread > 0:
 
-            su.calculate('spread_maxSymp',tmp[spread])        
+            su.calculate(trials,index,'spread_maxSymp',tmp[spread])        
         
         tmp = np.argmax(prevalence, axis=1)
 
-        su.calculate('all_TimeToPeak',tmp)
+        su.calculate(trials,index,'all_TimeToPeak',tmp)
 
         if n_spread > 0:
 
-            su.calculate('spread_TimeToPeak',tmp[spread])
+            su.calculate(trials,index,'spread_TimeToPeak',tmp[spread])
 
 
         symp_cum = np.cumsum(symp, axis=1)
         ttn = np.sum(symp_cum==0, axis=1)
         tmp = ttn
 
-        su.calculate('all_TimeToNotice',tmp)
+        su.calculate(trials,index,'all_TimeToNotice',tmp)
 
         if n_spread > 0:
 
-            su.calculate('spread_TimeToNotice',tmp[spread])
+            su.calculate(trials,index,'spread_TimeToNotice',tmp[spread])
      
         basis_dates = np.clip(ttn+2, 0, max_time_step)
         cases_at_notice = prevalence[range(0,n_runs), basis_dates]
         tmp = cases_at_notice
         
-        su.calculate('all_CasesAtNotice',tmp)
+        su.calculate(trials,index,'all_CasesAtNotice',tmp)
 
         if n_spread > 0:           
-            su.calculate('spread_CasesAtNotice',tmp[spread])
+            su.calculate(trials,index,'spread_CasesAtNotice',tmp[spread])
 
         print(datetime.datetime.now())
     

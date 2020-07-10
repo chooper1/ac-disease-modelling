@@ -21,12 +21,12 @@ def add_summary_cols(scr,name,init):
     scr[name + '_pc95'] = init
 
 
-def calculate(dest,scr):
-    trials.at[index,dest +'_mean']   = np.mean(scr)
-    trials.at[index,dest +'_min']    = np.min(scr)
-    trials.at[index,dest +'_max']    = np.max(scr)
-    trials.at[index,dest +'_median'] = np.median(scr)
-    trials.at[index,dest +'_pc5']    = np.percentile(scr, 5, axis=0)
-    trials.at[index,dest +'_pc25']   = np.percentile(scr, 25, axis=0)
-    trials.at[index,dest +'_pc75']   = np.percentile(scr, 75, axis=0)
-    trials.at[index,dest +'_pc95']   = np.percentile(scr, 95, axis=0)
+def calculate(dataframe,index,dest,scr):
+    dataframe.at[index,dest +'_mean']   = np.mean(scr)
+    dataframe.at[index,dest +'_min']    = np.min(scr)
+    dataframe.at[index,dest +'_max']    = np.max(scr)
+    dataframe.at[index,dest +'_median'] = np.median(scr)
+    dataframe.at[index,dest +'_pc5']    = np.percentile(scr, 5, axis=0)
+    dataframe.at[index,dest +'_pc25']   = np.percentile(scr, 25, axis=0)
+    dataframe.at[index,dest +'_pc75']   = np.percentile(scr, 75, axis=0)
+    dataframe.at[index,dest +'_pc95']   = np.percentile(scr, 95, axis=0)

@@ -9,7 +9,7 @@ import datetime
 import visualization as viz
 import json
 import sys
-
+import itertools
 
     
 def main():
@@ -41,6 +41,42 @@ def main():
     edges = graph_ops.loadEdgeList(edge_file)
     C,M,R,S = graph_ops.edgesAsMatrices(edges)
     contacts = scalarC*C + scalarM*M + scalarR*R + scalarS*S
+
+    # print("Debug")
+    soc = graph_ops.generate_random_social_graph(C,R,4,0.1,2)
+    # print(soc)
+    # print("soc shape:",soc.shape)
+    # print("soc type",type(soc))
+    # soc = np.array(soc)
+    # print("soc type",type(soc))
+
+    # for rows in soc:
+    #     print("Testing")
+    #     for elem in rows:
+    #         print(type(elem))
+
+
+    contacts = soc + contacts
+    
+    '''
+    print(contacts)
+    print("contacts shape:",contacts.shape)
+    print("contacts type",type(contacts))
+    for rows in contacts:
+        for elem in rows:
+            print(type(elem))
+
+    test = soc + contacts
+    print(test)
+    print("test shape:",test.shape)
+    for rows in test:
+        for elem in rows:
+            print(type(elem))
+        
+    contacts = soc + contacts
+    print(contacts)
+    print("new contacts shape:",contacts.shape)
+    '''
 
     print(datetime.datetime.now())
         
