@@ -8,18 +8,34 @@ class testing_facility:
     def __init__(self, fn_rate, fp_rate, turnaround_dist, config=None):
         self.fn_rate = fn_rate
         self.fp_rate = fp_rate
-        rng = np.arange(0,turnaround_dist.shape[0])
+        rng = np.arange(0,len(turnaround_dist))
         self.dist = st.rv_discrete(values=(rng,turnaround_dist))
         self.config = config
-        self.result_data = None
+        self.result_data = pd.DataFrame({
+            'ind':         [-1],
+            'submitted':   [-1],
+            'returned':    [-1],
+            'true_result': [False],
+            'result':      [False]
+            })
+
+        types = {
+            'ind':         int,
+            'submitted':   int,
+            'returned':    int,
+            'true_result': bool,
+            'result':      bool
+            }
+
+        self.result_data = self.result_data.astype(types)
 
 
     # Submit individuals for tests on given day.  true_results is a true false array
     # of the true test result.
     def submit(self, day, individuals, true_results):
         # Calculate test results
-        fp = np.random.uniform(size=len(individuals)) < fp_rate
-        fn = np.random.uniform(size=len(individuals)) < fn_rate
+        fp = np.random.uniform(size=len(individuals)) < self.fp_rate
+        fn = np.random.uniform(size=len(individuals)) < self.fn_rate
 
         # TODO:  add measure for whether test can work for individual
         # Configuration parameter for test effectiveness by number of days infected?
@@ -39,15 +55,12 @@ class testing_facility:
             'result':      test_results
             })
 
-        if self.result_data is None:
-            self.result_data = tmp
-        else:
-            self.result_data.append(tmp)
+        self.result_data = self.result_data.append(tmp, ignore_index=True)
 
 
     # Get test results released on given day.
     # Returns two arrays, the set of individuals, and their test results
     def results(self, day):
-        applicable = self.result_data.where(self.result_data['returned'] == day)
-        return applicable['ind'], applicable['result']
+        applicable = self.result_data[self.result_data['returned'] == day]
+        return applicable['ind'].values, applicable['result'].values
 
