@@ -313,7 +313,8 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
             # Consider excuding people who got tested today due to symptoms
 
             # Submit tests to the lab.  They'll be returned later
-            facility.submit(k, subjects, Y[subjects] > 0)
+            if len(subjects) > 0:
+                facility.submit(k, subjects, Y[subjects] > 0)
 
         if facility is not None:
             # Get results that have come back from the lab today
