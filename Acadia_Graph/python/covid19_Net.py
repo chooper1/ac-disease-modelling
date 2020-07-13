@@ -309,7 +309,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
         # Randomized testing with testing facilities
         if sampler is not None and facility is not None:
             # Determine who to "randomly" sample.  Skip dead and hospital
-            subjects = sampler.sample(mask=(Y.isin([5,7]))
+            subjects = sampler.sample(k, mask=(Y.isin([5,7]))
             # Consider excuding people who got tested today due to symptoms
 
             # Submit tests to the lab.  They'll be returned later

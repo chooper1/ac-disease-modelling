@@ -3,10 +3,22 @@ import numpy as np
 import scipy as sp
 import scipy.io as sio
 
+class SamplerConfigException(Exception):
+    def __init__(self, message):
+        self.message = message
+
 class sampling_strategy:
     def __init__(self, config):
         self.tested = []
         self.config = config
+        
+        if 'initial' not in config:
+            raise SamplerConfigException("initial day not in sampler configuration")
+        if 'period' not in config:
+            raise SamplerConfigException("sampler period not in sampler configuration")
+        
+        self.initial = config['initial']
+        self.period = config['period']
 
     # Internal sample function.  To be overridden in subclasses.
     def _sample(self,mask=None, parameters=None):
@@ -14,9 +26,15 @@ class sampling_strategy:
 
     # Mask is array of True/False (or 1/0).  If True, exclude from sampling
     def sample(self, mask=None, parameters=None):
-        individuals = self._sample(mask, parameters)
-        self.tested.append(individuals)
+        individuals = np.array([])
+
+        # Only sample if this day should have randomized testing occur
+        if (k - self.initial) % self.period == 0:
+            individuals = self._sample(mask, parameters)
+            self.tested.append(individuals)
+
         return individuals
+
 
     # Fatigue measure.
     # Useful for performing measurements related to unfairness of random testing... "Why
