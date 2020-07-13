@@ -72,4 +72,4 @@ fit_multiple=function(tdata){
 }
 
 #write fitted parameters to csv, fit is the output from fit_multiple(tdata)
-write.csv(fit, "4_param_fit.csv", row.names=TRUE)
+#write.csv(fit, "4_param_fit.csv", row.names=TRUE)

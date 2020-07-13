@@ -1,4 +1,4 @@
-#fits parameters r, p, alpha, K for cumulative fatalities using Teismann's parametric model
+#fits parameters r_tilde, p, alpha, K_tilde for cumulative fatalities using Teismann's parametric model
 
 #set to your working directory
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
@@ -13,7 +13,7 @@ library(dde)
 #define the ODE
 F_rate=function(t, F_, par){
   
-  #parameters (alpha and K set)
+  #parameters 
   r_tilde=par[1]
   p=par[2]
   alpha=par[3]
@@ -194,4 +194,105 @@ plot_shifted_cases=function(par, cases_C, cases_F, F_parest){
   
   plot=ggplot(data=C_df, aes(x=times_C, y=cases_C*mu_CFR, color="red"))+geom_line()+geom_line(data=F_df, aes(x=times, y=y, color="green"))+geom_line()
   print(plot)
+}
+
+#define the ODE system for fitting parameters to F and C as well as tau and mu_CFR
+C_F_rates=function(t, F_, par){
+  
+  #parameters
+  r=par[1]
+  p=par[2]
+  alpha=par[3]
+  K=par[4]
+  mu_CFR=par[5]
+  tau=par[6]
+
+  r_tilde=r*(1-p)/(mu_CFR)
+  K_tilde=mu_CFR*K
+  
+  
+  #F is total fatalities
+  dF_=r_tilde*F_^p*(1-(F_/K_tilde)^alpha)
+  dC=r*C^p*(1-(C/K)^alpha)
+  
+  return(list(dF_, dC))
+}
+
+#for fitting tau, mu_CFR, and r, p, alpha, k all at once
+#par is a vector the guesses for the parameters to be fitted
+#F_parest is the guesses for parameters for the fatality data, returned from fit_param_F()
+ssq_all_params_simultaneous=function(par, cases_C, cases_F){
+  
+  #parameters
+  r=par[1]
+  p=par[2]
+  alpha=par[3]
+  K=par[4]
+  mu_CFR=par[5]
+  tau=par[6]
+  
+  start_C=min(which(cases_C>0, arr.ind=TRUE))
+  cases_C=c(cases_C[start_C:length(cases_C)])
+  
+  start_F=min(which(cases_F>0, arr.ind=TRUE))
+  cases_F=c(cases_F[start_F:length(cases_F)])
+  
+  #times=seq(0, length(cases_C), 0.1)
+  t=c(1:length(cases_C))
+  #times=sort(union(times, t))
+ # df=data.frame(t, cases_C)
+  init=c(C=cases_C[1], F_=cases_F[1])
+  
+  #solves the ODE for times in t
+  out_1=ode(y=init, times=t, func=C_F_rates, parms=par)
+  
+  cases_C_1=out_1[,"C"]
+  cases_F_1=out_1[,"F_"]
+  
+  #shift times for cumulative cases by tau
+  times_shifted=t+tau
+  
+  out_2=ode(y=init, times=times_shifted, func=C_F_rates, parms=par)
+  
+  cases_C_2=out_2[,"C"]
+  
+  #separate values from before and after the first death (since ODE solver only starts at beginning of outbreak)
+  y=c()
+  times2=c()
+  for(x in times_shifted){
+    if(x<start_F){
+      y=append(y, 0)
+    }
+    else{
+      times2=append(times2, x)
+    }
+  }
+
+  #setting up the times to generate the fatality curve after the outbreak starts
+  times2=times2-start+1
+  
+  #we add value 1 at the beginning so the curve starts at the start of the deaths with the proper initial value
+  times2=append(times2, 1, after=0)
+  
+  #generates the estimates at the required times
+  F_out=ode(y=init, times=times2, func=C_F_rates, parms=par)
+  F_df=data.frame(F_out)
+  
+  #changes times_2 back to the correct values
+  times2=times2+start-1
+  
+  #relabels the times again so they are the same as the original
+  colnames(F_df)=c("t", "cases_F_2")
+  
+  #removes the extra "1" we added to the times
+  F_df=F_df[-1,]
+  
+  #builds the dataframe, adding the initial zeroes to the generated values
+  cases_F_2=c(y, F_df$cases_F_2)
+  #new_df=data.frame(times_shifted, y)
+  
+  #finds the absolute squared distance between the death and cases data curves plus the distance for the two curves after the shift
+  ssqr=sum(sqrt((cases_C_1-cases_C)^2)/mean(cases_C))+sum(sqrt((cases_F_1-cases_F)^2)/mean(cases_F))+sum((cases_F_2-cases_C_2*mu_CFR)^2)
+  
+  return(ssqr)
 }

@@ -113,6 +113,25 @@ fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
   return(parest)
 }
 
+fit_all_params_simultaneous=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
+  
+  #format case data for a given region
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  
+  #format fatality data for a given region
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  
+  par=c(r=2, p=1, alpha=1, K=cases_C[length(cases_C)], tau=20, mu_CFR=0.05)
+  
+  #performs the fit
+  fit=optim(par=par, fn=ssq_all_params_simultaneous, cases_C=cases_C, cases_F=cases_F, control=list(parscale=c(1,1,1,10^floor(log10(cases_C[length(cases_C)])), 1, 0.5)))
+  parest=fit$par
+  
+  
+}
+
 #plots the unfitted fatality and scaled case data data to visualize the curves in comparison to one another
 plot_cases_scaled=function(region, C_data=JHU_C_data, F_data=JHU_F_data, factor=0.05){
   
