@@ -9,7 +9,7 @@ def repeated_runs(N, bet,tau,ph,init,C,T,sigma,ndt,Cind,sim_offcampus_using=None
     Npop = C[0].shape[0]
     
     ns = np.zeros((N,T,9))
-    cus = np.zeros((N,T,5))
+    cus = np.zeros((N,T,7))
     ps = np.zeros((N,T,6))
     ous = np.zeros((N,T,3))
     r0ts = np.zeros((N,T,3))

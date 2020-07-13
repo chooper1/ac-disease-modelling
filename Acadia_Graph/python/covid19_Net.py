@@ -71,7 +71,9 @@ import math
 #                   Cu[:,1] =  total symptomatic cases
 #                   Cu[:,2] =  total asymptomatic cases
 #                   Cu[:,3] =  total mild cases
-#                   Cu[:,4] =  total hospililizations
+#                   Cu[:,4] =  total hospitalizations
+#                   Cu[:,5] =  total tests returned
+#                   Cu[:,6] =  total tests positive
 #
 #         P      (Tx6 matrix) daily prevalences
 #                   P[:,0] =  E exposed (compartments E and I_1 of our compartment diagram)
@@ -114,7 +116,7 @@ import math
 #            a    (Npop x 1 vector) individual age       (index j)
 #            x    (Npop x 1 vector) time after infection (index k)
 
-def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
+def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, facility=None, sampler=None):
 
     Npop = NetGrouped[0].shape[0];
     # adjust things to account for a time step that's different from "one day"
@@ -128,7 +130,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
     x = (-1)*np.ones((Npop,1))
 
     N = np.zeros((T,9))
-    Cu = np.zeros((T,5))
+    Cu = np.zeros((T,7))
     P = np.zeros((T,6))
     Ou = np.zeros((T,3))
 
@@ -297,6 +299,34 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14):
                 R0t[k,0] = R0time
             R0t[k, 1] = R0num
             R0t[k, 2] = R0den
+
+        # Note:  we can add the use of the facility object to perform the tests
+        # for folks in I.  When they go into I, some distribution(s) for compliance
+        # to getting tested and probability of when they go.  When they get tested,
+        # use facility.submit().  Then, we can pick them up in the getting of the
+        # results a little lower.
+
+        # Randomized testing with testing facilities
+        if sampler is not None and facility is not None:
+            # Determine who to "randomly" sample.  Skip dead and hospital
+            subjects = sampler.sample(mask=(Y.isin([5,7]))
+            # Consider excuding people who got tested today due to symptoms
+
+            # Submit tests to the lab.  They'll be returned later
+            facility.submit(k, subjects, Y[subjects] > 0)
+
+        if facility is not None:
+            # Get results that have come back from the lab today
+            today_results_who, today_results = facility.results(k)
+
+            # Okay, now what do we want to do with the positive test
+            # results?  Add to a cumulative bin?
+            if k == 1:
+                Cu[k,5] = len(today_results_who)
+                Cu[k,6] = np.sum(today_results)
+            else:
+                Cu[k,5] = Cu[k-1,5] + len(today_results_who)
+                Cu[k,6] = Cu[k-1,6] + np.sum(today_results)
 
         #testing policies
         if test == 1: #simple q_len-day quarantine
