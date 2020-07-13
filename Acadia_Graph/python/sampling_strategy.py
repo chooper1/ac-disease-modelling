@@ -9,12 +9,12 @@ class sampling_strategy:
         self.config = config
 
     # Internal sample function.  To be overridden in subclasses.
-    def _sample(self,mask=None):
+    def _sample(self,mask=None, parameters=None):
         pass
 
     # Mask is array of True/False (or 1/0).  If True, exclude from sampling
-    def sample(self, mask=None):
-        individuals = self._sample(mask)
+    def sample(self, mask=None, parameters=None):
+        individuals = self._sample(mask, parameters)
         self.tested.append(individuals)
         return individuals
 
@@ -39,7 +39,7 @@ class uniform(sampling_strategy):
         super().__init__(config)
         self.rng = range(0,config['P'])
 
-    def _sample(self,mask=None):
+    def _sample(self,mask=None, parameters=None):
         if mask is None:
             return np.random.choice(self.rng, size=self.config['N'])
         else:
@@ -60,7 +60,7 @@ class weighted(sampling_strategy):
         self.W = self.W/np.sum(self.W)
         self.rng = range(0,self.W.shape[0])
 
-    def _sample(self, mask=None):
+    def _sample(self, mask=None, parameters=None):
         tmpW = self.W
         if mask is not None:
             tmpW[mask] = 0
