@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.stats import norm
 import math
+from matrix_processor import matrix_processor
+
 
 # Simulates disease dynamics by a simple-minded individual-based algorithm,
 # which is a state-, age- and time-after-infection dependent
@@ -28,16 +30,18 @@ import math
 #                   ph[2] = recovery vs. death
 #
 #         init   initial number of infected (introduced into E+I_1 class)
-#         Net    network (contact) matrices (should be quadratic, symmetric
+#         matrices  network (contact) matrices (should be quadratic, symmetric
 #                and zero on the main diagonal; i.e., could be represented
-#                by an upper-triangular matrix).
-#                Net[i][j,jj] contains the average number of contacts between
-#                individuals j and jj per day. A "contact" has to be defined
-#                in some way; for instance,
+#                by an upper-triangular matrix). This argument contains a list
+#                of labelled matrices, with each corresponding to a specific
+#                type of contact.
+#                For each matrix, element [j,jj] contains the average number of
+#                contacts between individuals j and jj per day. A "contact" has
+#                to be defined in some way; for instance,
 #                  1 contact = "individuals j and jj are in the
 #                               same room for 1 hour"
-#                If the entry Net[i][j,jj] is not an integer, we interpret it as
-#                  Net[i][j,jj] = "probability that j and jj are in the
+#                If the entry M[j,jj] is not an integer, we interpret it as
+#                  M[j,jj] = "probability that j and jj are in the
 #                                same room for 1h at any given day"
 #                Since for a fixed day a contact either happens or it doesn't,
 #                we flip an appropriately biased coin to make the decision.
@@ -45,14 +49,7 @@ import math
 #         sigma  (vector)  shape paremters
 #                  sigma[0]  beta
 #                  sigma[1]  mu
-#         ndt    number of timesteps per day
-#         C_ind  indices for each day (to select between matrices)
-#
-#         test   choice of testing policy
-#                default: "0" - no testing policy
-#                         "1" - simple quarantine of length q_len for symptomatic cases
-#                         "2" - simple quarantine while people are in symptomatic bucket
-#         q_len  quarantine length
+#         filters  filters for each day (to select and weight matrices)
 #
 #
 # output: N      (Tx9 matrix) daily incidences
@@ -94,7 +91,7 @@ import math
 #                                          by cohort whose infectious period
 #                                          ended on day t
 #                               R0t[:,2] = size of that cohort
-#         Rinf  (Npop x 1 vector) 
+#         Rinf  (Npop x 1 vector)
 #                               Rinf[j] = number of infections caused by individual j
 #         RR  (Npop x Npop matrix of zeros and ones)
 #                               RR[j,jj] = 1  <=>  indiv. j infected indiv. jj
@@ -115,17 +112,13 @@ import math
 #            t    (T-vector)        chronological time   (index i)
 #            a    (Npop x 1 vector) individual age       (index j)
 #            x    (Npop x 1 vector) time after infection (index k)
+#            xq1  (Npop x 1 vector) time in quarantine (index case)
+#            xq2  (Npop x 1 vector) time in quarantine (secondary case)
 
-def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, facility=None, sampler=None):
+def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None,sampler=None):
 
-    Npop = NetGrouped[0].shape[0];
-    # adjust things to account for a time step that's different from "one day"
-    dt = 1/ndt;   # time step
-    NetGrouped = [dt*x for x in NetGrouped] # since Net is given as contacts "per day", the number of contacts
-                 # "per dt" is dt x C
-
-    T = ndt*T;    # turn simulation time span T (in days) into number of iterations
-                 # (index i)
+    proc = matrix_processor()
+    Npop = matrices['C'].shape[0]
     Y = np.zeros((Npop,1))
     x = (-1)*np.ones((Npop,1))
 
@@ -135,14 +128,16 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
     Ou = np.zeros((T,3))
 
     #timer and temporary storage for implementing testing policies
-    timers = np.zeros((Npop,1))
+    xq1 = (-1)*np.ones((Npop,1))
+    xqc = (-1)*np.ones((Npop,1))
+    xq = (-1)*np.ones((Npop,1))
+    xl = -1
 
     # sprinkle the intial infectives over classes E and I_1
     drawind = np.random.randint(0, Npop, size=init)
     Y[drawind] = 1
     x[drawind] = np.random.randint(tau[1]) # update time-after-infection for initial
 
-    #cohortlength = double(max(ceil(tau(2))+ceil(tau(3)),ceil(tau(2))+ceil(tau(5))))
     cohortlength = np.maximum(math.ceil(tau[1])+math.ceil(tau[2]), math.ceil(tau[1])+math.ceil(tau[4]))
     #matrix of infection events:
     #RR[j,jj] = "indiv. j has infected indiv. jj"
@@ -150,30 +145,89 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
     R0inf = np.zeros((Npop,1))
     R0t = np.zeros((T,3))
 
-    num_matrices = len(C_ind)
+    num_matrices = len(filters)
     rand_shift = np.random.randint(0, num_matrices)
 
     for k in range(0,T):
         NetInd = (k+rand_shift)%num_matrices
-        Net = NetGrouped[C_ind[NetInd]]
+        #lockdown
+        if quar is not None and k > 0:
+            locklength = quar[1]
+            #campus-wide lockdown once first symptomatic case appears
+            if (len(symptind) > 0 and xl == -1):
+                Net = proc.process(Npop, matrices, filters[NetInd][0])
+                xl = 0 # lockdown clock starts
+            # reapply lockdown
+            if (xl > -1 and xl < locklength):
+                Net = proc.process(Npop, matrices, filters[NetInd][0])
+            # lockdown ends
+            if xl==locklength: # restore contacts with non-quarantined indiv.
+                Net = proc.process(Npop, matrices, filters[NetInd][1])
+                xl = -1
+                # reset xl to allow for multiple lockdowns?
+        else:
+            Net = proc.process(Npop, matrices, filters[NetInd][0])
 
-        #testing policies
-        if test == 1: #simple q_len-day quarantine
-            timer = timers > 0
-            timer = timer[:,0]
-            if np.sum(timer) > 0:
-                Net[timer] = 0
-                Net[:, timer] = 0
-        elif test == 2: #quarantine while in symptomatic bucket
-            timer = timers > 0
-            timer = timer[:,0]
-            if np.sum(timer) > 0:
-                Net[timer] = 0
-                Net[:, timer] = 0
+        #reapply quarantining restrictions to next day's matrix
+        if quar is not None and facility is not None and k > 0:
+            #reapply quarantine (move this?)
+            #Net[xq != -1] = 0
+            #Net[:, xq != -1] = 0
+
+            quartime = quar[0] # length of quarantine period  (typ. 14 days)
+
+            [releaseind,dum] = np.nonzero(xq1 == quartime)
+            if len(releaseind) > 0:
+                xq1[releaseind] = -1  #set clock back
+                xq[releaseind] = -1   #set clock back
+
+            # release secondary cases who are finished with quarantine
+            [releaseind,dum] = np.nonzero(xqc == quartime)
+            if len(releaseind) > 0:
+                xqc[releaseind] = -1  #set clock back
+                xq[releaseind] = -1   #set clock back
+
+            #reapply quarantining
+            releaseind = np.array(xq > 0).flatten()
+            Net[releaseind] = 0
+            Net[:,releaseind] = 0
+
+            # quarantine primary cases (who are not already quarantined)
+            if len(quarind1) > 0:
+                Net[quarind1] = 0
+                Net[:,quarind1] = 0
+                xq1[quarind1] = 0
+
+            #so that classmates don't get simultaneously quarantined as a primary
+            #and a secondary case
+            xq = np.maximum(xq1, xqc)
+
+            # quarantine all classmates of primary cases (who are not already
+            # quarantined)
+            Class = proc.process(Npop, matrices, {
+                'C': {'weight': 1},
+                })
+            [dum1,dum2] = np.nonzero(Class[quarind1,:] > 0)
+            quarindc = np.unique(dum2)
+            if len(quarindc) > 0:
+                quar_c = np.array(xq[quarindc] == -1)
+                quar_c = quar_c.flatten()
+                quarindc = quarindc[quar_c]
+                Net[quarindc] = 0
+                Net[:,quarindc] = 0
+                xqc[quarindc] = 0
+                if facility is not None:
+                    #if we assume that all people in the same class as an index case are quarantined
+                    Y_temp = Y[quarindc] > 0
+                    Y_temp = np.array(Y_temp)
+                    Y_temp = Y_temp.flatten()
+                    facility.submit(k, quarindc, Y_temp)
+
+            xq = np.maximum(xq1, xqc)  # quarantine clock for both primary and seconday cases
 
         sig = sigma
         infind_ = beta(x,Y,sig,bet,tau) > 10**(-6)
-        
+
         b = beta(x[infind_].reshape((np.sum(infind_),1)),Y[infind_].reshape((np.sum(infind_),1)),sig,bet,tau)
         infind = np.nonzero(infind_)[0]
 
@@ -184,7 +238,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
             YY = np.ones((infectives,1)) * np.transpose(Y)
             ZZ = np.zeros((infectives,Npop))
             yy = np.zeros((infectives,Npop))
-            
+
             randseed = np.random.uniform(0,1,size=(infectives,Npop))
             Ind_ = cNet > 0
             Ind = np.nonzero(Ind_)
@@ -204,7 +258,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
             ZZ_sum = np.sum(ZZ,0)
             yy_sum = np.sum(yy,0)
             Y = np.add(Y,np.reshape(ZZ_sum, (Npop,1)))
-            x = np.add(x, np.reshape(dt*yy_sum, (Npop,1)))
+            x = np.add(x, np.reshape(yy_sum, (Npop,1)))
             N[k][0] = np.sum(x == 0)
 
         eind = np.nonzero(Y == 1)[0]
@@ -215,11 +269,11 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
 
         #E -> I and E-> A
         randseed = np.random.uniform(0,1,size=(len(eind),2))
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau,dt), randseed[:,1] < ph[0])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau), randseed[:,1] < ph[0])
         expr_ind = np.nonzero(expr)[0]
         symptind = eind[expr_ind]
         Y[symptind] = 2
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau,dt), randseed[:,1] >= ph[0])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][eind],1,sigma,tau), randseed[:,1] >= ph[0])
         expr_ind = np.nonzero(expr)[0]
         asymptind = eind[expr_ind]
         Y[asymptind] = 3
@@ -227,14 +281,13 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
         N[k][1] = len(symptind)
         N[k][2] = len(asymptind)
 
-
         # I -> J and I-> H
         randseed = np.random.uniform(0,1,size=(len(iind),2))
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau,dt), randseed[:,1] < ph[1])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau), randseed[:,1] < ph[1])
         expr_ind = np.nonzero(expr)[0]
         mildind = iind[expr_ind]
         Y[mildind] = 4
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau,dt), randseed[:,1] >= ph[1])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][iind],2,sigma,tau), randseed[:,1] >= ph[1])
         expr_ind = np.nonzero(expr)[0]
         hospind = iind[expr_ind]
         Y[hospind] = 3
@@ -244,7 +297,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
 
         # J -> R
         randseed = np.random.uniform(0,1,size=(len(jind),1))
-        expr = randseed < mu(x[:,0][jind],4,sigma,tau,dt)
+        expr = randseed < mu(x[:,0][jind],4,sigma,tau)
         expr_ind = np.nonzero(expr)[0]
         rind = jind[expr_ind]
         Y[rind] = 6
@@ -254,11 +307,11 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
         # H -> R and H -> F
         randseed = np.random.uniform(0,1,size=(len(hind),2))
 
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau,dt), randseed[:,1] < ph[2])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau), randseed[:,1] < ph[2])
         expr_ind = np.nonzero(expr)[0]
         hrind = hind[expr_ind]
         Y[hrind] = 6
-        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau,dt), randseed[:,1] >= ph[2])
+        expr = np.logical_and(randseed[:,0] < mu(x[:,0][hind],5,sigma,tau), randseed[:,1] >= ph[2])
         expr_ind = np.nonzero(expr)[0]
         dind = hind[expr_ind]
         Y[dind] = 7
@@ -268,7 +321,7 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
 
         # A -> B
         randseed = np.random.uniform(0,1,size=(len(aind),1))
-        expr = randseed < mu(x[:,0][aind],3,sigma,tau,dt)
+        expr = randseed < mu(x[:,0][aind],3,sigma,tau)
         expr_ind = np.nonzero(expr)[0]
         bind = aind[expr_ind]
         Y[bind] = 8
@@ -309,12 +362,14 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
         # Randomized testing with testing facilities
         if sampler is not None and facility is not None:
             # Determine who to "randomly" sample.  Skip dead and hospital
-            subjects = sampler.sample(k, mask=(Y.isin([5,7]))
+            subjects = sampler.sample(k, mask=(Y.isin([5,7])))
             # Consider excuding people who got tested today due to symptoms
-
             # Submit tests to the lab.  They'll be returned later
             if len(subjects) > 0:
-                facility.submit(k, subjects, Y[subjects] > 0)
+                Y_temp = Y[subjects] > 0
+                Y_temp = np.array(Y_temp)
+                Y_temp = Y_temp.flatten()
+                facility.submit(k, subjects, Y_temp)
 
         if facility is not None:
             # Get results that have come back from the lab today
@@ -329,27 +384,24 @@ def covid19_Net(bet,tau,ph,init,NetGrouped,T,sigma,ndt,C_ind,test=0,q_len=14, fa
                 Cu[k,5] = Cu[k-1,5] + len(today_results_who)
                 Cu[k,6] = Cu[k-1,6] + np.sum(today_results)
 
-        #testing policies
-        if test == 1: #simple q_len-day quarantine
-            #increment timers
-            timer = timers > 0
-            timer = timer[:,0]
-            timers[timer] = timers[timer] + 1
-            #print(timers[timer])
-            #remove people from isolation when they leave
-            timer = timers > q_len
-            timer = timer[:,0]
-            timers[timer] = 0
-            #new quarantined
-            timers[symptind] = 1
-        elif test == 2: #quarantine while in symptomatic bucket
-            #quarantine symptomatic cases
-            timers[symptind] = 1
-            #remove from quarantine when people leave the symptomatic bucket
-            timers[mildind] = 0
-            timers[hospind] = 0
+            if quar is not None:
+                #if we assume that all people in the same class as an index case are quarantined
+                quarind1 =  today_results_who[today_results == 1]
+                neg_results = today_results_who[today_results == 0]
+                sec_quar = np.nonzero(xqc > -1)
+                quarind_release = [x for x in neg_results if x in sec_quar]
+                #today_results_who[today_results == 0], np.nonzero(xqc > 0)
+                #release all people in quarantine who test negative
+                if len(quarind_release) > 0:
+                    xqc[quarind_release] = -1
+                    xq[quarind_release] = -1
 
-        x[x > -1] += dt
+        x[x > -1] += 1
+        xq1[xq1 > -1] += 1
+        xqc[xqc > -1] += 1
+        if xl > -1:
+            xl += 1
+        xq = np.maximum(xq1, xqc)
 
     return [N,Cu,P,Ou,R0t,R0inf,RR,Y,x]
 
@@ -367,7 +419,7 @@ def beta(x,n,sigma,bet,tau):
     b_1 = np.zeros((len(x),1))
     b_2 = np.zeros((len(x),1))
     b_3 = np.zeros((len(x),1))
-     
+
     if len(ind_1) != 0:
         b_1[ind_1] = bet[0]*norm.pdf((x[ind_1] - tau[0]) / s)/ s
     if len(ind_2) != 0:
@@ -378,22 +430,22 @@ def beta(x,n,sigma,bet,tau):
     b = b_1 + b_2 + b_3;
     return b
 
-def mu(x,n,sigma,tau,dt):
+def mu(x,n,sigma,tau):
     s = sigma[1]
     taux3 = tau[1] + tau[2]
     taux4 = tau[1] + tau[3]
     taux5 = taux3 + tau[4]
     taux6 = taux3 + tau[5]
     if n == 1:    # E->I and E->A
-       m = dt*(1+np.tanh(s*(x-tau[1])))/2
+       m = (1+np.tanh(s*(x-tau[1])))/2
     elif n == 2:  # I->J and I->H
-       m = dt*(1+np.tanh(s*(x-taux3)))/2
+       m = (1+np.tanh(s*(x-taux3)))/2
     elif n == 3:  # A->B
-       m = dt*(1+np.tanh(s*(x-taux4)))/2
+       m = (1+np.tanh(s*(x-taux4)))/2
     elif n == 4:  # J->R
-       m = dt*(1+np.tanh(s*(x-taux5)))/2
+       m = (1+np.tanh(s*(x-taux5)))/2
     elif n == 5:  # H->R and H->F
-       m = dt*(1+np.tanh(s*(x-taux6)))/2
+       m = (1+np.tanh(s*(x-taux6)))/2
     else:
-       m = dt*np.ones(len(x))
+       m = np.ones(len(x))
     return m
