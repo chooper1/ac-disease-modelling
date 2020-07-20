@@ -12,12 +12,11 @@ def main():
     bet= [0.01, 0.01, 0.01]
     tau = [5, 6, 4, 8, 17, 10]
     ph = [0.5, 1, 1]
-    init = 1
     T=100
     Npop = 4000
     sigma = [1, 1]
 
-    quar = [14,3]
+    quar = [14,5]
     locklevel = 0.7
     facility = tf.testing_facility(0.03, 0.02, [0.0, 0.5, 0.45, 0.04, 0.01])
 
@@ -49,7 +48,7 @@ def main():
         }
     filter = {0:{0:a, 1:b}, 1:{0:a, 1:b}, 2:{0:a, 1:b}, 3:{0:a, 1:b}, 4:{0:a, 1:b}, 5:{0:b, 1:b}, 6:{0:b, 1:b}}
     #running the covid19_Net simulation
-    [n,cu,p,ou,R0t,R0inf,RR,y,x] = covid19_Net(bet,tau,ph,init,matrices,T,sigma,filter,quar = quar,facility=facility)
+    [n,cu,p,ou,R0t,R0inf,RR,y,x] = covid19_Net(bet,tau,ph,matrices,T,sigma,filter,init=0,imp_rate=0.02,quar=quar,facility=facility)
 
     #plotting
     plot_p = np.zeros(T)

@@ -29,7 +29,6 @@ from matrix_processor import matrix_processor
 #                   ph[1] = mild vs. severe (hospital)
 #                   ph[2] = recovery vs. death
 #
-#         init   initial number of infected (introduced into E+I_1 class)
 #         matrices (dictionary) dictionary of labelled contact matrices.
 #                network (contact) matrices (should be quadratic, symmetric
 #                and zero on the main diagonal; i.e., could be represented
@@ -54,6 +53,10 @@ from matrix_processor import matrix_processor
 #                filters for each day (to select and weight matrices)
 #
 # optional inputs:
+#         init   initial number of infected (introduced into E+I_1 class)
+#
+#         imp_rate  importation rate (daily probability of new infections)
+#
 #         quar      variable controlling quarantining. Default value: None
 #                   if quar is of length 1 (eg. [s], where s is a scalar), then 
 #                   an s-day quarantine is imposed. 
@@ -134,7 +137,7 @@ from matrix_processor import matrix_processor
 #            xq   (Npop x 1 vector) time in quarantine (all cases)
 #            xl   (scalar)          time in lockdown   
 
-def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None,sampler=None):
+def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,facility=None,sampler=None):
     
     #initialize matrix processor object
     proc = matrix_processor()
@@ -156,8 +159,9 @@ def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None
 
     # sprinkle the intial infectives over classes E and I_1
     drawind = np.random.randint(0, Npop, size=init)
-    Y[drawind] = 1
-    x[drawind] = np.random.randint(tau[1]) # update time-after-infection for initial
+    if len(drawind) > 0:
+        Y[drawind] = 1
+        x[drawind] = np.random.randint(tau[1]) # update time-after-infection for initial
 
     cohortlength = np.maximum(math.ceil(tau[1])+math.ceil(tau[2]), math.ceil(tau[1])+math.ceil(tau[4]))
     #matrix of infection events:
@@ -170,6 +174,15 @@ def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None
     rand_shift = np.random.randint(0, num_matrices)
 
     for k in range(0,T):
+        # importation rate
+        if imp_rate > 0:
+            imp_check = np.random.randint(0, 1)
+            if imp_check < imp_rate:
+                #infection imported
+                imp_ind = np.random.randint(0, Npop)
+                Y[imp_ind] = 1
+                x[imp_ind] = np.random.randint(tau[1]) # update time-after-infection for initial
+        
         NetInd = (k+rand_shift)%num_matrices
         if k == 0:
             quarind1 = []
@@ -188,7 +201,7 @@ def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None
             elif xl==locklength: # restore contacts with non-quarantined indiv.
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
                 xl = -1
-                # reset xl to allow for multiple lockdowns?
+                # reset xl to allow for multiple lockdowns, or only allow one??????
             else:
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
                 
@@ -226,9 +239,10 @@ def covid19_Net(bet,tau,ph,init,matrices,T,sigma,filters,quar=None,facility=None
             xq = np.maximum(xq1, xqc)
 
             # quarantine all classmates of primary cases (who are not already
-            # quarantined)
+            # quarantined), and all people in their res section
             Class = proc.process(Npop, matrices, {
-                'C': {'weight': 1},
+                'C': {'weight': 1},  #class matrix
+                'S': {'weight': 1}   #res section matrix
                 })
             [dum1,dum2] = np.nonzero(Class[quarind1,:] > 0)
             quarindc = np.unique(dum2)
