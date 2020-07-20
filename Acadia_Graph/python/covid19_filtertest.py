@@ -48,7 +48,7 @@ def main():
         }
     filter = {0:{0:a, 1:b}, 1:{0:a, 1:b}, 2:{0:a, 1:b}, 3:{0:a, 1:b}, 4:{0:a, 1:b}, 5:{0:b, 1:b}, 6:{0:b, 1:b}}
     #running the covid19_Net simulation
-    [n,cu,p,ou,R0t,R0inf,RR,y,x] = covid19_Net(bet,tau,ph,matrices,T,sigma,filter,init=0,imp_rate=0.02,quar=quar,facility=facility)
+    [n,cu,p,ou,R0t,R0inf,RR,y,x] = covid19_Net(bet,tau,ph,matrices,T,sigma,filter,quar=quar,facility=facility)
 
     #plotting
     plot_p = np.zeros(T)
