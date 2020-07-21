@@ -58,9 +58,9 @@ from matrix_processor import matrix_processor
 #         imp_rate  importation rate (daily probability of new infections)
 #
 #         quar      variable controlling quarantining. Default value: None
-#                   if quar is of length 1 (eg. [s], where s is a scalar), then 
-#                   an s-day quarantine is imposed. 
-#                   if quar is of length 2 (eg. [s,t], where s,t are scalars), then 
+#                   if quar is of length 1 (eg. [s], where s is a scalar), then
+#                   an s-day quarantine is imposed.
+#                   if quar is of length 2 (eg. [s,t], where s,t are scalars), then
 #                   an s-day quarantine is imposed and a t-day lockdown is triggered
 #                   on the first positive test result.
 #
@@ -69,9 +69,9 @@ from matrix_processor import matrix_processor
 #
 #         sampler   variable controlling the sampling strategy. Default value: None
 #                   a sampling strategy object can be passed to trigger randomized
-#                   testing strategies that aim to detect the virus prior to the 
+#                   testing strategies that aim to detect the virus prior to the
 #                   appearance of the first symptomatic case.
-#         
+#
 # output: N      (Tx9 matrix) daily incidences
 #                   N[:,0] =  newly infected
 #                   N[:,1] =  new symptomatic cases
@@ -135,13 +135,13 @@ from matrix_processor import matrix_processor
 #            xq1  (Npop x 1 vector) time in quarantine (index case)
 #            xqc  (Npop x 1 vector) time in quarantine (secondary case)
 #            xq   (Npop x 1 vector) time in quarantine (all cases)
-#            xl   (scalar)          time in lockdown   
+#            xl   (scalar)          time in lockdown
 
 def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,facility=None,sampler=None):
-    
+
     #initialize matrix processor object
     proc = matrix_processor()
-    
+
     #initialize variables
     Npop = matrices['C'].shape[0]
     Y = np.zeros((Npop,1))
@@ -182,16 +182,16 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                 imp_ind = np.random.randint(0, Npop)
                 Y[imp_ind] = 1
                 x[imp_ind] = np.random.randint(tau[1]) # update time-after-infection for initial
-        
+
         NetInd = (k+rand_shift)%num_matrices
         if k == 0:
             quarind1 = []
             symptind = []
         #lockdown
-        if quar is not None:
+        if quar is not None and len(quar) == 2:
             locklength = quar[1]
             #campus-wide lockdown once first symptomatic case appears
-            if (len(symptind) > 0 and xl == -1):
+            if (len(quarind1) > 0 and xl == -1): #(len(symptind) > 0 and xl == -1)
                 Net = proc.process(Npop, matrices, filters[NetInd][1])
                 xl = 0 # lockdown clock starts
             # reapply lockdown
@@ -204,7 +204,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                 # reset xl to allow for multiple lockdowns, or only allow one??????
             else:
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
-                
+
         else:
             Net = proc.process(Npop, matrices, filters[NetInd][0])
 
@@ -229,7 +229,14 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
             Net[:,reapplyind] = 0
 
             # quarantine primary cases (who are not already quarantined)
+            if len(symptind) > 0:
+                Net[symptind] = 0
+                Net[:,symptind] = 0
+                xq1[symptind] = 0
+
+            #quarantine positive test results (who are not already quarantined)
             if len(quarind1) > 0:
+                quarind1 = quarind1[xq[quarind1] == -1]
                 Net[quarind1] = 0
                 Net[:,quarind1] = 0
                 xq1[quarind1] = 0
