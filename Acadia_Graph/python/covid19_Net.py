@@ -187,6 +187,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
         if k == 0:
             quarind1 = []
             symptind = []
+
         #lockdown
         if quar is not None and len(quar) == 2:
             locklength = quar[1]
@@ -198,13 +199,12 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
             elif (xl > -1 and xl < locklength):
                 Net = proc.process(Npop, matrices, filters[NetInd][1])
             # lockdown ends
-            elif xl==locklength: # restore contacts with non-quarantined indiv.
+            elif xl == locklength: # restore contacts with non-quarantined indiv.
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
                 xl = -1
                 # reset xl to allow for multiple lockdowns, or only allow one??????
             else:
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
-
         else:
             Net = proc.process(Npop, matrices, filters[NetInd][0])
 
@@ -230,16 +230,26 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
 
             # quarantine primary cases (who are not already quarantined)
             if len(symptind) > 0:
-                Net[symptind] = 0
-                Net[:,symptind] = 0
-                xq1[symptind] = 0
+                non = np.nonzero(xq[symptind] == -1)[0]
+                sympti = symptind[non]
+                Net[sympti] = 0
+                Net[:,sympti] = 0
+                xq1[sympti] = 0
+                xq[sympti] = 0
+                #submit primary cases for testing
+                if facility is not None:
+                    Y_temp = Y[symptind] > 0
+                    Y_temp = np.array(Y_temp)
+                    Y_temp = Y_temp.flatten()
+                    facility.submit(k, symptind, Y_temp)
 
             #quarantine positive test results (who are not already quarantined)
             if len(quarind1) > 0:
-                quarind1 = quarind1[xq[quarind1] == -1]
-                Net[quarind1] = 0
-                Net[:,quarind1] = 0
-                xq1[quarind1] = 0
+                non = np.nonzero(xq[quarind1] == -1)[0]
+                quari = quarind1[non]
+                Net[quari] = 0
+                Net[:,quari] = 0
+                xq1[quari] = 0
 
             #so that classmates don't get simultaneously quarantined as a primary
             #and a secondary case
@@ -432,11 +442,12 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                 #if we assume that all people in the same class as an index case are quarantined
                 quarind1 =  today_results_who[today_results == 1]
                 neg_results = today_results_who[today_results == 0]
-                sec_quar = np.nonzero(xqc > -1)
+                sec_quar = np.nonzero(xqc > -1)[0]
                 quarind_release = [x for x in neg_results if x in sec_quar]
                 #today_results_who[today_results == 0], np.nonzero(xqc > 0)
                 #release all people in quarantine who test negative
                 if len(quarind_release) > 0:
+                    xq1[quarind_release] = -1
                     xqc[quarind_release] = -1
                     xq[quarind_release] = -1
 
