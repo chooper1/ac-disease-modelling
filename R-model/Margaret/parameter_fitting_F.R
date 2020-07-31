@@ -26,6 +26,29 @@ F_rate=function(t, F_, par){
   return(list(dF_))
 }
 
+#define the ODE system for fitting parameters to F and C as well as tau and mu_CFR
+C_F_rates=function(t, x, par){
+  with(as.list(c(x, par)), {
+  #parameters
+  r=par[1]
+  p=par[2]
+  alpha=par[3]
+  K=par[4]
+  mu_CFR=par[5]
+  tau=par[6]
+  
+  r_tilde=r*(1-p)/(mu_CFR)
+  K_tilde=mu_CFR*K
+  
+  
+  #F is total fatalities
+  dF_=r_tilde*F_^p*(1-(F_/K_tilde)^alpha)
+  dC=r*C^p*(1-(C/K)^alpha)
+  
+  list(c(dF_, dC))
+  })
+}
+
 #calculates the sum of squared residuals, use with optim optimization
 ssq_F=function(par, cases){
   
@@ -196,27 +219,6 @@ plot_shifted_cases=function(par, cases_C, cases_F, F_parest){
   print(plot)
 }
 
-#define the ODE system for fitting parameters to F and C as well as tau and mu_CFR
-C_F_rates=function(t, F_, par){
-  
-  #parameters
-  r=par[1]
-  p=par[2]
-  alpha=par[3]
-  K=par[4]
-  mu_CFR=par[5]
-  tau=par[6]
-
-  r_tilde=r*(1-p)/(mu_CFR)
-  K_tilde=mu_CFR*K
-  
-  
-  #F is total fatalities
-  dF_=r_tilde*F_^p*(1-(F_/K_tilde)^alpha)
-  dC=r*C^p*(1-(C/K)^alpha)
-  
-  return(list(dF_, dC))
-}
 
 #for fitting tau, mu_CFR, and r, p, alpha, k all at once
 #par is a vector the guesses for the parameters to be fitted
@@ -269,7 +271,7 @@ ssq_all_params_simultaneous=function(par, cases_C, cases_F){
   }
 
   #setting up the times to generate the fatality curve after the outbreak starts
-  times2=times2-start+1
+  times2=times2-start_F+1
   
   #we add value 1 at the beginning so the curve starts at the start of the deaths with the proper initial value
   times2=append(times2, 1, after=0)
@@ -279,7 +281,7 @@ ssq_all_params_simultaneous=function(par, cases_C, cases_F){
   F_df=data.frame(F_out)
   
   #changes times_2 back to the correct values
-  times2=times2+start-1
+  times2=times2+start_F-1
   
   #relabels the times again so they are the same as the original
   colnames(F_df)=c("t", "cases_F_2")

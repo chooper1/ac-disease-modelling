@@ -12,12 +12,19 @@ JHU_C_data<-t(JHU_C_data)
 JHU_R_data<-read.csv("JHU_data/time_series_covid19_recovered_global.csv")
 JHU_R_data<-t(JHU_R_data)
 
-#this data goes up to May 4, for comparison with Flaxman et. al
+#this data goes up to May 4, for comparison with Flaxman et al.
 C_data_May_4<-read.csv("JHU_data/time_series_covid19_confirmed_global - to May 4.csv")
 C_data_May_4<-t(C_data_May_4)
 
 F_data_May_4 <- read.csv("JHU_data/time_series_covid19_deaths_global - to May 4.csv")
 F_data_May_4<-t(F_data_May_4)
+
+#data up to April 17, for comparison with Irene Rocchetti et al.
+C_data_April_17<-read.csv("JHU_data/time_series_covid19_confirmed_global - to April 17.csv")
+C_data_April_17<-t(C_data_April_17)
+
+F_data_April_17<-read.csv("JHU_data/time_series_covid19_deaths_global - to April 17.csv")
+F_data_April_17<-t(F_data_April_17)
 
 #generates a vector of region labels for the estimates (JHU data)
 regions=function(data){
