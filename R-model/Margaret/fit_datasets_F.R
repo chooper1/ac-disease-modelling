@@ -38,7 +38,7 @@ regions=function(data){
 }
 
 #fits r_tilde, p, alpha, and K_tilde for a given region
-fit_param_F=function(region, data){
+fit_param_F=function(region, data, sample_times=NULL){
 
   #format case data for a given region
   cases=as.integer(data[5:nrow(data), region])
@@ -51,7 +51,7 @@ fit_param_F=function(region, data){
   par=c(r_tilde=2, p=1, alpha=1, K_tilde=cases[length(cases)])
   
   #performs the fit
-  fit=optim(par=par, fn=ssq_F, cases=cases, control=list(parscale=c(1,1,1,10^floor(log10(cases[length(cases)])))))
+  fit=optim(par=par, fn=ssq_F, cases=cases, sample_times=sample_times, control=list(parscale=c(1,1,1,10^floor(log10(cases[length(cases)])))))
   parest=fit$par
   
   return(parest)
@@ -92,10 +92,11 @@ fit_multiple_F=function(data){
   return(paramdf)
 }
 
-fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
+fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, sample_size=NULL){
   
-  #estimates paramters for fatality data (discarding days before outbreak)
-  F_parest=fit_param_F(region, F_data)
+
+  
+
   
   #F_parest=c(F_parest[1], F_parest[2], F_parest[3], F_parest[4])
   
@@ -106,6 +107,15 @@ fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
   #format fatality data for a given region
   cases_F=as.integer(F_data[5:nrow(F_data), region])
   cases_F=cases_F[!is.na(cases_F)]
+  
+  t=c(1:length(cases_C))
+  if(is.null(sample_size=FALSE)){
+  sample_times=sort(c(sample(t, size=sample_size)))}else{
+    sample_times=NULL
+  }
+  
+  #estimates paramters for fatality data (discarding days before outbreak)
+  F_parest=fit_param_F(region, F_data, sample_times=sample_times)
 
   #use this if just fitting tau
   #par=c(tau=20)
@@ -113,7 +123,7 @@ fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data){
   
   #for fitting tau and mu_CFR
   par=c(tau=20, mu_CFR=0.05)
-  fit=optim(par=par, fn=ssq_C_F, cases_C=cases_C, cases_F=cases_F, F_parest=F_parest, control=list(parscale=c(1,.5)))
+  fit=optim(par=par, fn=ssq_C_F, cases_C=cases_C, cases_F=cases_F, F_parest=F_parest, sample_times=sample_times, control=list(parscale=c(1,.5)))
   
   parest=fit$par
   

@@ -50,12 +50,19 @@ C_F_rates=function(t, x, par){
 }
 
 #calculates the sum of squared residuals, use with optim optimization
-ssq_F=function(par, cases){
+ssq_F=function(par, cases, sample_times=NULL){
+  
+  #takes a sample of the cases if we are sampling
+  if(is.null(sample_times)==FALSE){
+    cases=cases[sample_times]
+    t=sample_times
+  }else{
+    t=c(1:length(cases))
+  }
   
   par=c(r_tilde=par[1],p=par[2], alpha=par[3], K_tilde=par[4])
   
   times=seq(0, length(cases), 0.1)
-  t=c(1:length(cases))
   times=sort(union(times, t))
   df=data.frame(t, cases)
   init=c(cases[1])
@@ -143,7 +150,7 @@ generate_C=function(par, cases_C, times){
 #for fitting tau and (optionally) mu_CFR
 #par is a vector the guesses for the parameters to be fitted
 #F_parest is the guesses for parameters for the fatality data, returned from fit_param_F()
-ssq_C_F=function(par, cases_C, cases_F, F_parest){
+ssq_C_F=function(par, cases_C, cases_F, F_parest, sample_times=NULL){
   
   #sets default value for mu_CFR if only fitting for tau
   tau=par[1]
@@ -154,13 +161,20 @@ ssq_C_F=function(par, cases_C, cases_F, F_parest){
     mu_CFR=0.05
   }
   
+  if(is.null(sample_times)==FALSE){
+    times_C=sample_times
+    cases_C=cases_C[sample_times]
+  }else{
+    times_C=c(1:length(cases_C))
+  }
+  
   r_tilde=F_parest[1]
   p=F_parest[2]
   alpha=F_parest[3]
   K_tilde=F_parest[4]
   
   #shift times for cumulative cases by tau
-  times_C=c(1:length(cases_C))+tau
+  times_C=times_C+tau
   C_df=data.frame(times_C, cases_C)
   
   start=min(which(cases_F>0, arr.ind=TRUE))
