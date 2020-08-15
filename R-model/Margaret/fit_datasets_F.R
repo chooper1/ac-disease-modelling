@@ -26,6 +26,20 @@ C_data_April_17<-t(C_data_April_17)
 F_data_April_17<-read.csv("JHU_data/time_series_covid19_deaths_global - to April 17.csv")
 F_data_April_17<-t(F_data_April_17)
 
+#data up to July 9, to compare with Quebec seroprevalence
+C_data_July_9<-read.csv("JHU_data/time_series_covid19_confirmed_global - to July 9.csv")
+C_data_July_9<-t(C_data_July_9)
+
+F_data_July_9<-read.csv("JHU_data/time_series_covid19_deaths_global - to July 9.csv")
+F_data_July_9<-t(F_data_July_9)
+
+#temp data, to truncate to a certain date
+C_data_temp<-read.csv("JHU_data/time_series_covid19_confirmed_global - temp.csv")
+C_data_temp<-t(C_data_temp)
+
+F_data_temp<-read.csv("JHU_data/time_series_covid19_deaths_global - temp.csv")
+F_data_temp<-t(F_data_temp)
+
 #generates a vector of region labels for the estimates (JHU data)
 regions=function(data){
   
@@ -109,7 +123,7 @@ fit_tau_mu_CFR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, sample_siz
   cases_F=cases_F[!is.na(cases_F)]
   
   t=c(1:length(cases_C))
-  if(is.null(sample_size=FALSE)){
+  if(is.null(sample_size==FALSE)){
   sample_times=sort(c(sample(t, size=sample_size)))}else{
     sample_times=NULL
   }
@@ -177,7 +191,7 @@ plot_cases_scaled=function(region, C_data=JHU_C_data, F_data=JHU_F_data, factor=
 
 #plots the shifted and scaled fitted curves to see how good the tau and mu_CFR fit is
 #par is returned from fit_tau_mu_CFR
-plot_shifted_scaled_cases=function(region, par=NULL, C_data=JHU_C_data, F_data=JHU_F_data){
+plot_shifted_scaled_cases=function(region, par=NULL, C_data=JHU_C_data, F_data=JHU_F_data, final_size_guess=5000){
   if(is.null(par)==TRUE){
     par=fit_tau_mu_CFR(region, C_data, F_data)
     }
@@ -208,7 +222,10 @@ plot_shifted_scaled_cases=function(region, par=NULL, C_data=JHU_C_data, F_data=J
   F_df=generate_F(times_C, init, start, F_parest)
   
   #generates values for C from fit
-  par_C=c(r=2, p=1, alpha=1, K=5000)
+  #par_C=c(r=2, p=1, alpha=1, K=10^floor(log10(cases_C[length(cases_C)])))
+  #par_C=c(r=1, p=1, alpha=1, K=cases_C[length(cases_C)]/10)
+  par_C=c(r=1, p=1, alpha=1, K=final_size_guess)
+  
   C_df=generate_C(par_C, cases_C, times_C)
   
   plot=ggplot(data=C_df, aes(x=times, y=cases_C*factor, color="red"))+geom_line()+geom_line(data=F_df, aes(x=times, y=y, color="green"))+geom_line()+theme(legend.position="none")+labs(title=regions[region])
@@ -237,8 +254,9 @@ plot_underreporting_vs_mu_CFR=function(factor, mu_CFR, region, C_data=JHU_C_data
 }
 
 #returns the "underreporting ratio" vs time
-phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
-
+phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01, final_size_guess=5000){
+  regions=regions(C_data)
+  
   parest=fit_tau_mu_CFR(region, C_data, F_data)
   
   tau=parest[1]
@@ -257,7 +275,8 @@ phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
   times=c(1:length(cases_C))+tau
  
   #generates C and F curves from the fits
-  par_C=c(r=2, p=1, alpha=1, K=5000)
+  #par_C=c(r=2, p=1, alpha=1, K=10^floor(log10(cases_C[length(cases_C)])))
+  par_C=c(r=1, p=1, alpha=1, K=final_size_guess)
   C_df=generate_C(par_C, cases_C, times)
   
   F_df=generate_F(times, init, start, F_parest)
@@ -275,6 +294,21 @@ phi_vs_time=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01){
 
   df=data.frame(times, ratios)
   return(df)
+  print(regions[region])
+  
+ # return(df$ratios[length(df$ratios)])
+  
+  }
+
+#returns average phi for a country
+average_phi=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, final_size_guess=5000){
+  regions=regions(C_data)
+  
+  df=phi_vs_time(region, C_data, F_data, mu_IFR, final_size_guess = final_size_guess)
+  average=mean(df$ratios)
+  
+  print(regions[region])
+  return(average)
 }
 
 #plots the ratios calculated in ratios_vs_time()
@@ -425,3 +459,4 @@ plot_Rt_data=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_CFR=0.01,
   
 }
 
+countries_acadia=c(36, 37, 39, 40, 41, 42, 43, 45, 46, 21, 22, 218, 35, 49, 83, 97, 99, 121, 122, 124, 62, 132, 133, 134, 138, 139, 141, 143, 145, 154, 158, 159, 166, 174, 177, 184, 186, 189, 193, 194, 197, 202, 203, 207, 236, 209, 212, 214, 215, 216, 217, 224, 228)
