@@ -1,5 +1,6 @@
 import numpy as np
 from scipy.stats import norm
+import scipy.stats as st
 import math
 from matrix_processor import matrix_processor
 
@@ -137,7 +138,7 @@ from matrix_processor import matrix_processor
 #            xq   (Npop x 1 vector) time in quarantine (all cases)
 #            xl   (scalar)          time in lockdown
 
-def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,facility=None,sampler=None):
+def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,quar_mat_filter=None,facility=None,sampler=None,symp_test_comp=1.0):
 
     #initialize matrix processor object
     proc = matrix_processor()
@@ -156,7 +157,15 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
     xqc = (-1)*np.ones((Npop,1))
     xq = (-1)*np.ones((Npop,1))
     xl = -1
-
+    
+    # Default our map of "adjacent" people to quarantine to classes and res sections
+    quar_map = {
+        'C': {'weight': 1},  #class matrix
+        'S': {'weight': 1}   #res section matrix
+        }
+    if quar_mat_filter is not None:
+        quar_map = quar_mat_filter
+        
     # sprinkle the intial infectives over classes E and I_1
     drawind = np.random.randint(0, Npop, size=init)
     if len(drawind) > 0:
@@ -172,6 +181,9 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
 
     num_matrices = len(filters)
     rand_shift = np.random.randint(0, num_matrices)
+    
+    quarind1 = []
+    symptind = []
 
     for k in range(0,T):
         # importation rate
@@ -184,9 +196,6 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                 x[imp_ind] = np.random.randint(tau[1]) # update time-after-infection for initial
 
         NetInd = (k+rand_shift)%num_matrices
-        if k == 0:
-            quarind1 = []
-            symptind = []
 
         #lockdown
         if quar is not None and len(quar) == 2:
@@ -238,10 +247,20 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                 xq[sympti] = 0
                 #submit primary cases for testing
                 if facility is not None:
-                    Y_temp = Y[symptind] > 0
-                    Y_temp = np.array(Y_temp)
-                    Y_temp = Y_temp.flatten()
-                    facility.submit(k, symptind, Y_temp)
+                    # symptomatic testing compliance
+                    test_draws = st.uniform.rvs(size=len(symptind))
+                    to_test = symptind[test_draws < symp_test_comp]
+                    
+                    if len(to_test) > 0:
+                        Y_temp = Y[to_test] > 0
+                        Y_temp = np.array(Y_temp)
+                        Y_temp = Y_temp.flatten()
+                        facility.submit(k, to_test, Y_temp)
+                
+                        #Y_temp = Y[symptind] > 0
+                        #Y_temp = np.array(Y_temp)
+                        #Y_temp = Y_temp.flatten()
+                        #facility.submit(k, symptind, Y_temp)
 
             #quarantine positive test results (who are not already quarantined)
             if len(quarind1) > 0:
@@ -257,10 +276,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
 
             # quarantine all classmates of primary cases (who are not already
             # quarantined), and all people in their res section
-            Class = proc.process(Npop, matrices, {
-                'C': {'weight': 1},  #class matrix
-                'S': {'weight': 1}   #res section matrix
-                })
+            Class = proc.process(Npop, matrices, quar_map)
             [dum1,dum2] = np.nonzero(Class[quarind1,:] > 0)
             quarindc = np.unique(dum2)
             if len(quarindc) > 0:
@@ -275,7 +291,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                     Y_temp = Y[quarindc] > 0
                     Y_temp = np.array(Y_temp)
                     Y_temp = Y_temp.flatten()
-                    facility.submit(k, quarindc, Y_temp)
+                    #facility.submit(k, quarindc, Y_temp)
 
             xq = np.maximum(xq1, xqc)  # quarantine clock for both primary and seconday cases
 
@@ -428,15 +444,17 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
         if facility is not None:
             # Get results that have come back from the lab today
             today_results_who, today_results = facility.results(k)
+            
+            print("Testing: %d returned, %d positive" % (len(today_results_who), np.sum(today_results)))
 
             # Okay, now what do we want to do with the positive test
             # results?  Add to a cumulative bin?
             if k == 1:
-                Cu[k,5] = len(today_results_who)
-                Cu[k,6] = np.sum(today_results)
+                Cu[k][5] = len(today_results_who)
+                Cu[k][6] = np.sum(today_results)
             else:
-                Cu[k,5] = Cu[k-1,5] + len(today_results_who)
-                Cu[k,6] = Cu[k-1,6] + np.sum(today_results)
+                Cu[k][5] = Cu[k-1][5] + len(today_results_who)
+                Cu[k][6] = Cu[k-1][6] + np.sum(today_results)
 
             if quar is not None:
                 #if we assume that all people in the same class as an index case are quarantined

@@ -225,7 +225,8 @@ def matrixRS(filename,R,S):
     return matrix
 
 
-def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_contacts_per_day):
+#def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_contacts_per_day):
+def generate_random_social_graph(CM_graph,avg_friends,dispersion):
 
     #students_CM = pd.concat([pd.Series(CM_graph.PersonA.unique()),pd.Series(CM_graph.PersonB.unique())],ignore_index = True)
     #students_CM = students_CM.unique()
@@ -238,10 +239,10 @@ def generate_random_social_graph(CM_graph,RS_graph,avg_friends,dispersion,avg_co
 
     matrix = nx.to_numpy_matrix(x)
 
-    for elem in np.nditer(matrix):
-        elem = int(elem)
-        if elem == 1:
-            elem = np.random.poisson(avg_contacts_per_day)
+    #for elem in np.nditer(matrix):
+    #    elem = int(elem)
+    #    if elem == 1:
+    #        elem = np.random.poisson(avg_contacts_per_day)
             
 
     matrix = np.array(matrix)
