@@ -1,4 +1,4 @@
-library("deDolve")
+library("deSolve")
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
 source("fit_datasets_F.R")
 
@@ -13,7 +13,7 @@ rhs_SEIIAR=function(t, y, par, fit, N, phi){
     else{
       phi=mean(phi$ratios)
     }
-    
+
     dS=-beta*(I_1+I_2+A)*S/N
     dE=beta*(I_1+I_2+A)*S/N-mu_E*E
     dI_1=mu_E*E-1.5*mu*I_1
@@ -30,20 +30,29 @@ rhs_SEIIAR=function(t, y, par, fit, N, phi){
 
 ssq_SEIIAR=function(par, region, cases_C, cases_F, mu_IFR=0.01, phi, times, start, fit, pop, mu_CFR){
   
-  p_pre_0=par[4]
-  p_post_0=par[5]
+  p_pre_0=par[3]
+  #p_post_0=par[4]
   
-  names=c("beta", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
-  par=c(par[1], par[2], par[3], par[4], par[5], rho=1-mu_CFR)
+  names=c("beta", "mu_E", "mu", "p_pre_0", "rho")
+ # par=c(par[1], par[2], par[3], par[4], par[5], rho=1-mu_CFR)
+  par=c(par[1], par[2], 0.2, par[3], rho=1-mu_CFR)
   names(par)=names
   
   N=pop
   
+  if(phi$times[1]>start){
+    phi_start=mean(phi$ratios)
+  }else{
+    index=which(phi$times==start)
+    phi_start=phi$ratios[index]
+  }
+  
   names=c("S", "E", "I_1", "I_2", "A", "R_1", "F_", "R_2")
-  S0=c(S=N, E=N*p_pre_0/2, I_1=N*p_pre_0/2, I_2=N*p_post_0/2, A=N*p_post_0/2, R_1=0, F_=cases_F[1], R_2=0)
+  S0=c(S=N, E=N*p_pre_0/2, I_1=N*p_pre_0/2, I_2=cases_C[1], A=cases_C[1]*(1-(1/phi_start)), R_1=0, F_=cases_F[1], R_2=0)
   names(S0)=names
   
-  print(S0)
+  p_post_0=(S0[5]+S0[4])/N
+  print(p_post_0)
   
   ode_soln=ode(y=S0, times, func=rhs_SEIIAR, par=par, fit=fit, N=N, phi=phi)
   
@@ -75,7 +84,7 @@ fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01
   
   cases_C=as.integer(C_data[5:nrow(C_data), region])
   cases_C=cases_C[!is.na(cases_C)]
-  start=min(c(which(cases_C>0, arr.ind=TRUE), intervention))
+  start=max(min(c(which(cases_C>0, arr.ind=TRUE))), intervention)
   times=c(start:length(cases_C))
   cases_C=c(cases_C[start:length(cases_C)])
 
@@ -84,9 +93,11 @@ fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01
   cases_F=cases_F[!is.na(cases_F)]
   cases_F=c(cases_F[start:length(cases_F)])
 
-  par=c(beta=0.38, mu_E=1/4, mu=1/5, p_pre_0=0.001, p_post=0.001)
+  #par=c(beta=0.38, mu_E=1/4, mu=1/5, p_pre_0=0.001, p_post=0.001)
+  par=c(beta=0.38, mu_E=1/4, p_pre_0=0.001)
   
-  ode_fit=optim(par=par, fn=ssq_SEIIAR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, pop=pop, mu_CFR=mu_CFR)
+  
+  ode_fit=optim(par=par, fn=ssq_SEIIAR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, pop=pop, mu_CFR=mu_CFR, method="L-BFGS-B", lower=c(0, 0, 0), upper=c(1, 1, 1))
   
   fit_par=ode_fit$par
   
@@ -94,5 +105,9 @@ fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01
   
 }
 
-
+plot_SEIIAR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, pop, intervention=1, fit_par=NULL){
+  
+  
+  
+}
 
