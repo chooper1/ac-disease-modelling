@@ -3,8 +3,8 @@ library("rootSolve")
 setwd("C:/Users/mjiho/ac-disease-modelling/R-model/Margaret/")
 source("fit_datasets_F.R")
 
-rhs_SEIIAR=function(t, y, par, fit, N, phi){
-  with(as.list(c(y, par, fit)), {
+rhs_SEIIAR=function(t, y, par, fit, N, phi, beta_type, intervention){
+  with(as.list(c(y, par, fit, intervention)), {
     
     #sets phi to the average for t before start, selects correct phi value if after start
     if(t>=phi$times[1]){
@@ -15,6 +15,7 @@ rhs_SEIIAR=function(t, y, par, fit, N, phi){
       phi=mean(phi$ratios)
     }
 
+    if(beta_type=="equal"){
     dS=-beta*(I_1+I_2+A)*S/N
     dE=beta*(I_1+I_2+A)*S/N-mu_E*E
     dI_1=mu_E*E-1.5*mu*I_1
@@ -22,24 +23,38 @@ rhs_SEIIAR=function(t, y, par, fit, N, phi){
     dC=1.5*(1/phi)*mu*I_1
     dA=1.5*(1-(1/phi))*mu*I_1-mu*A
     dR_1=mu*A
-    dF_=(1-rho)*mu
-    dR_2=rho*mu
+    dF_=(1-rho)*mu*I_2
+    dR_2=rho*mu*I_2
+    }else if(beta_type=="time-dep"){
+      if(t<intervention){
+        dS=-beta_b*(I_1+I_2+A)*S/N
+        dE=beta_b*(I_1+I_2+A)*S/N-mu_E*E
+        dI_1=mu_E*E-1.5*mu*I_1
+        dI_2=1.5*(1/phi)*mu*I_1-mu*I_2
+        dC=1.5*(1/phi)*mu*I_1
+        dA=1.5*(1-(1/phi))*mu*I_1-mu*A
+        dR_1=mu*A
+        dF_=(1-rho)*mu*I_2
+        dR_2=rho*mu*I_2
+      }else{
+        dS=-beta_a*(I_1+I_2+A)*S/N
+        dE=beta_a*(I_1+I_2+A)*S/N-mu_E*E
+        dI_1=mu_E*E-1.5*mu*I_1
+        dI_2=1.5*(1/phi)*mu*I_1-mu*I_2
+        dC=1.5*(1/phi)*mu*I_1
+        dA=1.5*(1-(1/phi))*mu*I_1-mu*A
+        dR_1=mu*A
+        dF_=(1-rho)*mu*I_2
+        dR_2=rho*mu*I_2
+      }
+    }
     
     list(c(dS, dE, dI_1, dI_2, dC, dA, dR_1, dF_, dR_2))
     
   })
 }
 
-ssq_SEIIAR=function(par, region, cases_C, cases_F, mu_IFR=0.01, phi, times, start, fit, pop, mu_CFR){
-  
-  p_pre_0=par[3]
-  p_post_0=par[4]
-  
-  names=c("beta", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
-  #par=c(par[1], par[2], par[3], par[4], par[5], rho=1-mu_CFR)
- # par=c(par[1], par[2], 0.2, par[3], par[4], rho=1-mu_CFR)
-  par=c(par[1], 1/4, par[2], par[3], par[4], rho=1-mu_CFR)
-  names(par)=names
+ssq_SEIIAR=function(par, region, cases_C, cases_F, mu_IFR=0.01, phi, times, start, fit, pop, mu_CFR, beta_type, intervention){
   
   N=pop
   
@@ -50,13 +65,39 @@ ssq_SEIIAR=function(par, region, cases_C, cases_F, mu_IFR=0.01, phi, times, star
     phi_start=phi$ratios[index]
   }
   
-  names=c("S", "E", "I_1", "I_2", "C", "A", "R_1", "F_", "R_2")
-  S0=c(S=N, E=N*p_pre_0/2, I_1=N*p_pre_0/2, I_2=p_post_0*N/2, C=cases_C[1], A=p_post_0*N/2, R_1=0, F_=cases_F[1], R_2=0)
-  names(S0)=names
+  if(beta_type=="equal"){
+    
+    p_pre_0=par[3]
+    p_post_0=par[4]
+    names=c("beta", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
+    #par=c(par[1], par[2], par[3], par[4], par[5], rho=1-mu_CFR)
+    # par=c(par[1], par[2], 0.2, par[3], par[4], rho=1-mu_CFR)
+    par=c(par[1], 1/4, par[2], par[3], par[4], rho=1-mu_CFR)
+    names(par)=names
+    
+    names=c("S", "E", "I_1", "I_2", "C", "A", "R_1", "F_", "R_2")
+    S0=c(S=N, E=N*p_pre_0/2, I_1=N*p_pre_0/2, I_2=p_post_0*N/2, C=cases_C[1], A=p_post_0*N/2, R_1=0, F_=cases_F[1], R_2=0)
+    names(S0)=names
+    
+  }else if(beta_type=="time-dep"){
+    
+    names=c("beta_b", "beta_a", "mu_E", "mu", "rho")
+    par=c(par[1], par[2], 1/4, par[3], rho=1-mu_CFR)
+    names(par)=names
+    
+    names=c("S", "E", "I_1", "I_2", "C", "A", "R_1", "F_", "R_2")
+    S0=c(S=N, E=0, I_1=0, I_2=cases_C[1], C=cases_C[1], A=(1-(1/phi_start))*cases_C[1], R_1=0, F_=cases_F[1], R_2=0)
+    names(S0)=names
+  }
+
+  
+
+  
+
   
   #p_post_0=(S0[5]+S0[4])/N
 
-  ode_soln=ode(y=S0, times, func=rhs_SEIIAR, par=par, fit=fit, N=N, phi=phi)
+  ode_soln=ode(y=S0, times, func=rhs_SEIIAR, par=par, fit=fit, N=N, phi=phi, beta_type=beta_type, intervention=intervention)
   
   #I_2=ode_soln[,"I_2"]
   #R_2=ode_soln[,"R_2"]
@@ -70,9 +111,11 @@ ssq_SEIIAR=function(par, region, cases_C, cases_F, mu_IFR=0.01, phi, times, star
   
 }
 
-fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, pop, intervention=1, final_size_guess=5000){
+fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, pop, intervention=1, final_size_guess=5000, beta_type){
   
   region_name=regions(C_data)[region]
+  
+  N=pop
   
   phi=phi_vs_time(region, C_data, F_data, mu_IFR, final_size_guess = final_size_guess)
   
@@ -87,34 +130,155 @@ fit_to_SEIIAR=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01
   
   cases_C=as.integer(C_data[5:nrow(C_data), region])
   cases_C=cases_C[!is.na(cases_C)]
-  start=max(min(c(which(cases_C>0, arr.ind=TRUE))), intervention)
-  times=c(start:length(cases_C))
-  cases_C=c(cases_C[start:length(cases_C)])
-
   
   cases_F=as.integer(F_data[5:nrow(F_data), region])
   cases_F=cases_F[!is.na(cases_F)]
+  
+  if(beta_type=="equal"){
+    start=max(min(c(which(cases_C>0, arr.ind=TRUE))), intervention)
+    par=c(beta=0.38, mu=1/5, p_pre_0=0.0001, p_post_0=0.0001)
+  }else if(beta_type=="time-dep"){
+    start=min(which(cases_C>0, arr.ind=TRUE))
+    par=c(beta_b=0.38, beta_a=0.38, mu=1/5)
+  }
+  
+
+  
+  times=c(start:length(cases_C))
+  cases_C=c(cases_C[start:length(cases_C)])
+
   cases_F=c(cases_F[start:length(cases_F)])
 
+  
   #par=c(beta=0.38, mu_E=1/4, mu=1/5, p_pre_0=0.0001, p_post=0.0001)
   #par=c(beta=0.38, mu_E=1/4, p_pre_0=0.0001, p_post_0=0.0001)
-  par=c(beta=0.38, mu=1/5, p_pre_0=0.0001, p_post_0=0.0001)
   
-  ode_fit=optim(par=par, fn=ssq_SEIIAR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, pop=pop, mu_CFR=mu_CFR, method="L-BFGS-B", lower=c(0, 0, 0), upper=c(1, 1, 1))
+  ode_fit=optim(par=par, fn=ssq_SEIIAR, gr=NULL, region=region, cases_C=cases_C, cases_F=cases_F, mu_IFR=mu_IFR, phi=phi, times=times, start=start, fit=fit, pop=pop, mu_CFR=mu_CFR, beta_type=beta_type, intervention=intervention, method="L-BFGS-B", lower=c(0, 0, 0), upper=c(1, 1, 1))
   
   fit_par=ode_fit$par
+  
+  if(beta_type=="equal"){
+   
+     names=c("beta", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
+     fit_par=c(fit_par[1], 1/4, fit_par[2], fit_par[3], fit_par[4], rho=1-mu_CFR)
+     names(fit_par)=names
+     
+  }else if(beta_type=="time-dep"){
+    if(phi$times[1]>start){
+      phi_start=mean(phi$ratios)
+    }else{
+      index=which(phi$times==start)
+      phi_start=phi$ratios[index]
+    }
+    names=c("S", "E", "I_1", "I_2", "C", "A", "R_1", "F_", "R_2")
+    S0=c(S=N, E=0, I_1=0, I_2=cases_C[1], C=cases_C[1], A=(1-(1/phi_start))*cases_C[1], R_1=0, F_=cases_F[1], R_2=0)
+    names(S0)=names
+    
+    names=c("beta_b", "beta_a", "mu_E", "mu", "rho")
+    fit_par=c(fit_par[1], fit_par[2], 1/4, fit_par[3], rho=1-mu_CFR)
+    names(fit_par)=names
+    
+  ode_soln=ode(y=S0, times, func=rhs_SEIIAR, par=fit_par, fit=fit, N=N, phi=phi, beta_type=beta_type, intervention=intervention)
+  
+  E=ode_soln[,"E"]
+  I_1=ode_soln[,"I_1"]
+  A=ode_soln[,"A"]
+  I_2=ode_soln[,"I_2"]
+  
+  index=which(ode_soln[,"time"]==intervention, arr.ind = TRUE)
+  p_pre_0=(E[index]+I_1[index])/N
+  p_post_0=(A[index]+I_2[index])/N
+  
+  names=c("beta_b", "beta_a", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
+  fit_par=c(fit_par[1], fit_par[2], fit_par[3], fit_par[4], p_pre_0, p_post_0, fit_par[5])
+  names(fit_par)=names
+
+  }
+  
+  
   
   return(fit_par)
   
 }
 
-plot_SEIIAR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, pop, intervention=1, fit_par=NULL){
+plot_SEIIAR_fit=function(region, C_data=JHU_C_data, F_data=JHU_F_data, mu_IFR=0.01, pop, intervention=1, fit_par=NULL, final_size_guess=5000, beta_type, compartment){
+  if(is.null(fit_par==TRUE)){
+    fit_par=fit_to_SEIIAR(region, C_data, F_data, mu_IFR, pop, intervention, final_size_guess)
+  }
+  region_name=regions(C_data)[region]
+  
+  phi=phi_vs_time(region, C_data, F_data, mu_IFR)
+  
+  tau_mu_CFR=fit_tau_mu_CFR(region, C_data, F_data)
+  tau=tau_mu_CFR[1]
+  mu_CFR=tau_mu_CFR[2]
+  
+  phi$times=phi$times-tau
+  times=phi$times
+  
+  fit=lm(ratios~poly(times, 6, raw=TRUE), data=phi)
+  
+  if(beta_type=="equal"){
+    start=max(min(c(which(cases_C>0, arr.ind=TRUE))), intervention)
+    p_pre_0=fit_par[4]
+    p_post_0=fit_par[5]
+  }else if(beta_type=="time-dep"){
+    start=min(which(cases_C>0, arr.ind=TRUE))
+    if(phi$times[1]>start){
+      phi_start=mean(phi$ratios)
+    }else{
+      index=which(phi$times==start)
+      phi_start=phi$ratios[index]
+    }
+  }
+  
+  cases_C=as.integer(C_data[5:nrow(C_data), region])
+  cases_C=cases_C[!is.na(cases_C)]
+  times=c(start:length(cases_C))
+  cases_C=c(cases_C[start:length(cases_C)])
   
   
+  cases_F=as.integer(F_data[5:nrow(F_data), region])
+  cases_F=cases_F[!is.na(cases_F)]
+  cases_F=c(cases_F[start:length(cases_F)])
   
+
+  
+  N=pop
+  
+  names=c("S", "E", "I_1", "I_2", "C", "A", "R_1", "F_", "R_2")
+  if(beta_type=="equal"){
+    S0=c(S=N, E=N*p_pre_0/2, I_1=N*p_pre_0/2, I_2=p_post_0*N/2, C=cases_C[1], A=p_post_0*N/2, R_1=0, F_=cases_F[1], R_2=0)
+  }else if(beta_type=="time-dep"){
+    S0=c(S=N, E=0, I_1=0, I_2=cases_C[1], C=cases_C[1], A=(1-(1/phi_start))*cases_C[1], R_1=0, F_=cases_F[1], R_2=0)
+  }
+  names(S0)=names
+  
+  #names=c("beta", "mu_E", "mu", "p_pre_0", "p_post_0", "rho")
+  #fit_par=c(fit_par[1], 1/4, fit_par[2], fit_par[3], fit_par[4], rho=1-mu_CFR)
+  #names(fit_par)=names
+  
+  ode_soln=ode(y=S0, times, func=rhs_SEIIAR, par=fit_par, fit=fit, N=N, phi=phi, beta_type=beta_type, intervention=intervention)
+  
+  C=ode_soln[,"C"]
+  F_=ode_soln[,"F_"]
+  
+  sim_C_df=data.frame(times, C)
+  sim_F_df=data.frame(times, F_)
+  C_df=data.frame(times, cases_C)
+  F_df=data.frame(times, cases_F)
+  
+  if(compartment=="C"){
+    plot=ggplot(data=C_df, aes(x=times, y=cases_C))+geom_point()+geom_line(data=sim_C_df, aes(x=times, y=C))+labs(title=region_name)
+    print(plot)
+  }
+  else if(compartment=="F"){
+    plot=ggplot(data=F_df, aes(x=times, y=cases_F))+geom_point()+geom_line(data=sim_F_df, aes(x=times, y=F_))+labs(title=region_name)
+    print(plot)
+  }
 }
 
 fn<-function(z){
-  0.7795282*z+log(1-z)-log(1-0.01068354)
+  0.8654657*z+log(1-z)-log(1-0.0124321)
 }
 uniroot(fn, c(0, 1))
