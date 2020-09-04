@@ -201,7 +201,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
             # lockdown ends
             elif xl == locklength: # restore contacts with non-quarantined indiv.
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
-                xl = -1
+                #xl = -1
                 # reset xl to allow for multiple lockdowns, or only allow one??????
             else:
                 Net = proc.process(Npop, matrices, filters[NetInd][0])
@@ -242,7 +242,30 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                     Y_temp = np.array(Y_temp)
                     Y_temp = Y_temp.flatten()
                     facility.submit(k, symptind, Y_temp)
-
+                    
+            #quarantine based of symptomatic cases
+            Housing = proc.process(Npop, matrices, {
+                'S': {'weight': 1},   #res section matrix
+                'Off': {'weight': 1}  #apartment living matrix
+                })
+            
+            [dum1,dum2] = np.nonzero(Housing[symptind,:] > 0)
+            quarindh = np.unique(dum2)
+            
+            if len(quarindh) > 0:
+                quar_h = np.array(xq[quarindh] == -1)
+                quar_h = quar_h.flatten()
+                quarindh = quarindh[quar_h]
+                Net[quarindh] = 0
+                Net[:,quarindh] = 0
+                xqc[quarindh] = 0
+                if facility is not None:
+                    #if we assume that all people in the same class as an index case are quarantined
+                    Y_temp = Y[quarindh] > 0
+                    Y_temp = np.array(Y_temp)
+                    Y_temp = Y_temp.flatten()
+                    facility.submit(k, quarindh, Y_temp)
+            
             #quarantine positive test results (who are not already quarantined)
             if len(quarind1) > 0:
                 non = np.nonzero(xq[quarind1] == -1)[0]
@@ -259,10 +282,13 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
             # quarantined), and all people in their res section
             Class = proc.process(Npop, matrices, {
                 'C': {'weight': 1},  #class matrix
-                'S': {'weight': 1}   #res section matrix
+                'S': {'weight': 1},   #res section matrix
+                'Off': {'weight': 1}  #apartment living matrix
                 })
+
             [dum1,dum2] = np.nonzero(Class[quarind1,:] > 0)
             quarindc = np.unique(dum2)
+            
             if len(quarindc) > 0:
                 quar_c = np.array(xq[quarindc] == -1)
                 quar_c = quar_c.flatten()
@@ -276,6 +302,7 @@ def covid19_Net(bet,tau,ph,matrices,T,sigma,filters,init=1,imp_rate=0,quar=None,
                     Y_temp = np.array(Y_temp)
                     Y_temp = Y_temp.flatten()
                     facility.submit(k, quarindc, Y_temp)
+            
 
             xq = np.maximum(xq1, xqc)  # quarantine clock for both primary and seconday cases
 
